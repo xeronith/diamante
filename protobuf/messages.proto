@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package protobuf;
+
+message Void {
+}
+
+message BinaryOperationRequest {
+    uint64 id = 1;
+    uint64 operation = 2;
+    string token = 3;
+    bytes payload = 4;
+    int32 api_version = 5;
+    int32 client_version = 6;
+    string client_name = 7;
+}
+
+message BinaryOperationResult {
+    uint64 id = 1;
+    int32 status = 2;
+    uint64 type = 3;
+    bytes payload = 4;
+    int32 api_version = 5;
+    int32 server_version = 6;
+    int32 client_version = 7;
+}
+
+message TextOperationRequest {
+    uint64 id = 1;
+    uint64 operation = 2;
+    string token = 3;
+    string payload = 4;
+    int32 api_version = 5;
+    int32 client_version = 6;
+    string client_name = 7;
+}
+
+message TextOperationResult {
+    uint64 id = 1;
+    int32 status = 2;
+    uint64 type = 3;
+    string payload = 4;
+    int32 api_version = 5;
+    int32 server_version = 6;
+    int32 client_version = 7;
+}
+
+message ServerError {
+    string message = 1;
+    string description = 2;
+}
+
+message CompoundObject {
+    string title = 1;
+    Sample sample = 2;
+}
+
+message Sample {
+    string stringField = 1;
+    int32 int32Field = 2;
+    bool boolField = 3;
+}
