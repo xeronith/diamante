@@ -134,16 +134,32 @@ func (mysql *MySQL) GetAddress() string {
 	return mysql.Address
 }
 
+func (mysql *MySQL) SetAddress(address string) {
+	mysql.Address = address
+}
+
 func (mysql *MySQL) GetDatabase() string {
 	return mysql.Database
+}
+
+func (mysql *MySQL) SetDatabase(database string) {
+	mysql.Database = database
 }
 
 func (mysql *MySQL) GetUsername() string {
 	return mysql.Username
 }
 
+func (mysql *MySQL) SetUsername(username string) {
+	mysql.Username = username
+}
+
 func (mysql *MySQL) GetPassword() string {
 	return mysql.Password
+}
+
+func (mysql *MySQL) SetPassword(password string) {
+	mysql.Password = password
 }
 
 func (mysql *MySQL) IsPasswordSkipped() bool {

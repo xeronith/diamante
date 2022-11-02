@@ -40,9 +40,13 @@ type (
 
 	IMySqlConfiguration interface {
 		GetAddress() string
+		SetAddress(string)
 		GetDatabase() string
+		SetDatabase(string)
 		GetUsername() string
+		SetUsername(string)
 		GetPassword() string
+		SetPassword(string)
 		IsPasswordSkipped() bool
 	}
 
