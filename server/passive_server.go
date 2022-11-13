@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"time"
@@ -110,6 +114,82 @@ func (server *defaultServer) startPassiveServer() {
 
 	passiveServer.POST("/", defaultHandler)
 	passiveServer.POST("/diagnostics/:clientType", diagnosticsHandler)
+
+	const (
+		UPLOAD_PATH     = "./media/"
+		MAX_UPLOAD_SIZE = 10 * 1024 * 1024 // 10MB
+	)
+
+	passiveServer.POST("/media", func(ctx echo.Context) error {
+		writer := ctx.Response().Writer
+		request := ctx.Request()
+
+		request.Body = http.MaxBytesReader(writer, request.Body, MAX_UPLOAD_SIZE)
+		if err := request.ParseMultipartForm(MAX_UPLOAD_SIZE); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "FILE_TOO_BIG")
+		}
+
+		file, _, err := request.FormFile("file")
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE")
+		}
+
+		defer file.Close()
+		fileBytes, err := ioutil.ReadAll(file)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE")
+		}
+
+		// DetectContentType only needs the first 512 bytes
+		filetype := http.DetectContentType(fileBytes)
+		switch filetype {
+		case "image/jpeg", "image/jpg":
+		case "image/gif", "image/png":
+		case "video/x-flv":
+		case "video/mp4":
+		case "application/x-mpegURL":
+		case "video/MP2T":
+		case "video/quicktime":
+		case "video/3gpp":
+		case "video/x-msvideo":
+		case "video/x-ms-wmv":
+			break
+		default:
+			return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE_TYPE")
+		}
+
+		data := make([]byte, 12)
+		rand.Read(data)
+		fileName := fmt.Sprintf("%x_%d", data, time.Now().UnixNano())
+
+		fileEndings, err := mime.ExtensionsByType(filetype)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_READ_FILE_TYPE")
+		}
+
+		newPath := filepath.Join(UPLOAD_PATH, fileName+fileEndings[0])
+		fmt.Printf("FileType: %s, File: %s\n", filetype, newPath)
+
+		newFile, err := os.Create(newPath)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
+		}
+
+		defer newFile.Close() // idempotent, okay to call twice
+		if _, err := newFile.Write(fileBytes); err != nil || newFile.Close() != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
+		}
+
+		return ctx.JSON(http.StatusOK, struct {
+			Url string `json:"url"`
+		}{
+			Url: fmt.Sprintf("%s://%s/%s",
+				server.configuration.GetServerConfiguration().GetProtocol(),
+				server.configuration.GetServerConfiguration().GetFQDN(),
+				newPath,
+			),
+		})
+	})
 
 	passiveServer.GET("/health", func(context echo.Context) error {
 		return context.String(http.StatusOK, "OK")
