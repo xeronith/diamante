@@ -116,7 +116,7 @@ func (server *defaultServer) startPassiveServer() {
 	passiveServer.POST("/diagnostics/:clientType", diagnosticsHandler)
 
 	const (
-		UPLOAD_PATH     = "./media/"
+		UPLOAD_PATH     = "./media"
 		MAX_UPLOAD_SIZE = 10 * 1024 * 1024 // 10MB
 	)
 
@@ -167,9 +167,7 @@ func (server *defaultServer) startPassiveServer() {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_READ_FILE_TYPE")
 		}
 
-		newPath := filepath.Join(UPLOAD_PATH, fileName+fileEndings[0])
-		fmt.Printf("FileType: %s, File: %s\n", filetype, newPath)
-
+		newPath := filepath.Join(UPLOAD_PATH, fileName+fileEndings[len(fileEndings)-1])
 		newFile, err := os.Create(newPath)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
@@ -190,6 +188,8 @@ func (server *defaultServer) startPassiveServer() {
 			),
 		})
 	})
+
+	passiveServer.Static("/media", UPLOAD_PATH)
 
 	passiveServer.GET("/health", func(context echo.Context) error {
 		return context.String(http.StatusOK, "OK")
