@@ -14,11 +14,11 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func Handle[T protoreflect.ProtoMessage, V protoreflect.ProtoMessage](
+func Handle[T, V protoreflect.ProtoMessage](
 	x IServerDispatcher,
 	entryPoint string,
-	request_type,
-	result_type uint64,
+	requestType,
+	resultType uint64,
 	input T,
 	output V,
 	onInputUnmarshalled func(T),
@@ -41,7 +41,7 @@ func Handle[T protoreflect.ProtoMessage, V protoreflect.ProtoMessage](
 
 	request := CreateBinaryOperationRequest(
 		uint64(time.Now().UnixNano()),
-		request_type,
+		requestType,
 		"pipeline",
 		0, 0, "", nil,
 	)
@@ -57,7 +57,7 @@ func Handle[T protoreflect.ProtoMessage, V protoreflect.ProtoMessage](
 
 	actor := CreateActor(nil, false, x.RemoteAddr(), x.UserAgent())
 	result := x.OnActorBinaryData(actor, data)
-	if result.Type() != result_type {
+	if result.Type() != resultType {
 		if result.Type() == 0 {
 			serverErr := &ServerError{}
 			if err = x.Deserialize(result.(IBinaryOperationResult).Payload(), serverErr); err != nil {
