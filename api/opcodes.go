@@ -1,5 +1,3 @@
 package api
 
-const (
-	ECHO = 10
-)
+const ECHO = 10
