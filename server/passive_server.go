@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math/rand"
 	"mime"
@@ -23,6 +23,11 @@ import (
 	. "github.com/xeronith/diamante/io"
 	dispatcher "github.com/xeronith/diamante/network/http"
 )
+
+type uploadedMedia struct {
+	Url         string `json:"url"`
+	ContentType string `json:"contentType"`
+}
 
 func (server *defaultServer) startPassiveServer() {
 	listener, err := reuseport.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", server.passivePort))
@@ -46,7 +51,7 @@ func (server *defaultServer) startPassiveServer() {
 			message []byte
 		)
 
-		message, err = ioutil.ReadAll(context.Request().Body)
+		message, err = io.ReadAll(context.Request().Body)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, "")
 		} else {
@@ -135,14 +140,14 @@ func (server *defaultServer) startPassiveServer() {
 		}
 
 		defer file.Close()
-		fileBytes, err := ioutil.ReadAll(file)
+		fileBytes, err := io.ReadAll(file)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE")
 		}
 
 		// DetectContentType only needs the first 512 bytes
-		filetype := http.DetectContentType(fileBytes)
-		switch filetype {
+		fileType := http.DetectContentType(fileBytes)
+		switch fileType {
 		case "image/jpeg", "image/jpg":
 		case "image/gif", "image/png":
 		case "video/x-flv":
@@ -162,7 +167,7 @@ func (server *defaultServer) startPassiveServer() {
 		rand.Read(data)
 		fileName := fmt.Sprintf("%x_%d", data, time.Now().UnixNano())
 
-		fileEndings, err := mime.ExtensionsByType(filetype)
+		fileEndings, err := mime.ExtensionsByType(fileType)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_READ_FILE_TYPE")
 		}
@@ -178,14 +183,13 @@ func (server *defaultServer) startPassiveServer() {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
 		}
 
-		return ctx.JSON(http.StatusOK, struct {
-			Url string `json:"url"`
-		}{
+		return ctx.JSON(http.StatusOK, uploadedMedia{
 			Url: fmt.Sprintf("%s://%s/%s",
 				server.configuration.GetServerConfiguration().GetProtocol(),
 				server.configuration.GetServerConfiguration().GetFQDN(),
 				newPath,
 			),
+			ContentType: fileType,
 		})
 	})
 
@@ -203,7 +207,7 @@ func (server *defaultServer) startPassiveServer() {
 			return echo.NewHTTPError(http.StatusBadRequest, "FILE_TOO_BIG")
 		}
 
-		urls := make([]string, 0)
+		uploadedFiles := make([]uploadedMedia, 0)
 
 		for _, fileHeader := range files.File["file"] {
 			file, err := fileHeader.Open()
@@ -212,14 +216,14 @@ func (server *defaultServer) startPassiveServer() {
 			}
 
 			defer file.Close()
-			fileBytes, err := ioutil.ReadAll(file)
+			fileBytes, err := io.ReadAll(file)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE")
 			}
 
 			// DetectContentType only needs the first 512 bytes
-			filetype := http.DetectContentType(fileBytes)
-			switch filetype {
+			fileType := http.DetectContentType(fileBytes)
+			switch fileType {
 			case
 				"image/jpeg", "image/jpg",
 				"image/gif", "image/png",
@@ -240,7 +244,7 @@ func (server *defaultServer) startPassiveServer() {
 			rand.Read(data)
 			fileName := fmt.Sprintf("%x_%d", data, time.Now().UnixNano())
 
-			fileEndings, err := mime.ExtensionsByType(filetype)
+			fileEndings, err := mime.ExtensionsByType(fileType)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, "CANT_READ_FILE_TYPE")
 			}
@@ -256,17 +260,20 @@ func (server *defaultServer) startPassiveServer() {
 				return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
 			}
 
-			urls = append(urls, fmt.Sprintf("%s://%s/%s",
-				server.configuration.GetServerConfiguration().GetProtocol(),
-				server.configuration.GetServerConfiguration().GetFQDN(),
-				newPath,
-			))
+			uploadedFiles = append(uploadedFiles, uploadedMedia{
+				Url: fmt.Sprintf("%s://%s/%s",
+					server.configuration.GetServerConfiguration().GetProtocol(),
+					server.configuration.GetServerConfiguration().GetFQDN(),
+					newPath,
+				),
+				ContentType: fileType,
+			})
 		}
 
 		return ctx.JSON(http.StatusOK, struct {
-			Urls []string `json:"urls"`
+			Files []uploadedMedia `json:"files"`
 		}{
-			Urls: urls,
+			Files: uploadedFiles,
 		})
 	})
 
@@ -325,5 +332,6 @@ func (server *defaultServer) startPassiveServer() {
 
 	if err := passiveServer.Start(""); err != nil {
 		// server.logger.Critical(fmt.Sprintf("PASSIVE SERVER FAILURE: %s", err))
+		_ = err
 	}
 }
