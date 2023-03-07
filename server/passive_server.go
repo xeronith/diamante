@@ -13,8 +13,8 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/valyala/fasthttp/reuseport"
 	. "github.com/xeronith/diamante/actor"
 	. "github.com/xeronith/diamante/contracts/actor"

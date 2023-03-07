@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/valyala/fasthttp/reuseport"
 	. "github.com/xeronith/diamante/actor"
 	. "github.com/xeronith/diamante/contracts/actor"

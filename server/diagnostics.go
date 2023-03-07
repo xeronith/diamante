@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"github.com/labstack/echo"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/labstack/echo/v4"
 )
 
 func (server *defaultServer) startDiagnosticsServer() {

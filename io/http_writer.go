@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/securecookie"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	. "github.com/xeronith/diamante/contracts/io"
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/serialization"
