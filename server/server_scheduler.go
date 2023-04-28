@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gofrs/uuid"
 	. "github.com/xeronith/diamante/contracts/scheduling"
 	"github.com/xeronith/diamante/logging"
+	"github.com/xeronith/diamante/utility"
 )
 
 type scheduler struct {
@@ -83,10 +83,8 @@ func (scheduler *scheduler) Cancel(id string) {
 }
 
 func (scheduler *scheduler) set(callback func(), duration time.Duration, recurring bool) string {
-	id, _ := uuid.NewV4()
-
 	_future := future{
-		id:        id.String(),
+		id:        utility.GenerateUUID(),
 		duration:  duration,
 		timeout:   time.Now().Add(duration),
 		callback:  callback,

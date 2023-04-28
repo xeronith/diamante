@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/gofrs/uuid"
 )
 
 func GenerateConfirmationCode() string {
@@ -23,4 +25,9 @@ func GenerateHash(value, salt string) string {
 	hash := sha256.New()
 	hash.Write([]byte(content))
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func GenerateUUID() string {
+	guid, _ := uuid.NewV4()
+	return guid.String()
 }
