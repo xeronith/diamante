@@ -10,8 +10,7 @@ type (
 		GetEnvironment() string
 		GetServerConfiguration() IServerConfiguration
 		GetInfluxConfiguration() IInfluxConfiguration
-		GetMySQLConfiguration() IMySqlConfiguration
-		GetClientsConfiguration() []IClientConfiguration
+		GetPostgreSQLConfiguration() IPostgreSQLConfiguration
 		GetPorts() (int, int, int)
 	}
 
@@ -38,16 +37,17 @@ type (
 		GetCertFile() string
 	}
 
-	IMySqlConfiguration interface {
-		GetAddress() string
-		SetAddress(string)
+	IPostgreSQLConfiguration interface {
+		GetHost() string
+		SetHost(string)
+		GetPort() string
+		SetPort(string)
 		GetDatabase() string
 		SetDatabase(string)
 		GetUsername() string
 		SetUsername(string)
 		GetPassword() string
 		SetPassword(string)
-		IsPasswordSkipped() bool
 	}
 
 	IInfluxConfiguration interface {
@@ -57,10 +57,5 @@ type (
 		GetUsername() string
 		GetPassword() string
 		GetReplicas() []string
-	}
-
-	IClientConfiguration interface {
-		GetId() string
-		GetUrl() string
 	}
 )

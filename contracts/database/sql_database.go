@@ -14,7 +14,7 @@ type (
 		Initialize() error
 		GetName() string
 		GetSchema() ISqlSchema
-		RunScript(string) error
+		RunScript(string, string) error
 		Query(Iterator, Command, ...Parameter) error
 		QuerySingle(Iterator, Command, ...Parameter) error
 		Execute(Command, ...Parameter) (int64, error)
@@ -37,7 +37,6 @@ type (
 
 	ISqlSchema interface {
 		GetTables() []string
-		GetHistoryTables() []string
 		GetColumns(table string) []string
 		GetTriggers() []string
 		HasTable(table string) bool

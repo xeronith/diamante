@@ -1,7 +1,6 @@
 package settings
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -118,52 +117,60 @@ func (tls *TLS) GetCertFile() string {
 
 //------------------------------------------------------------------------------------------------------------
 
-type MySQL struct {
-	Address      string `yaml:"address"`
-	Database     string `yaml:"database"`
-	Username     string `yaml:"username"`
-	Password     string `yaml:"password"`
-	SkipPassword bool   `yaml:"skip_password"`
+type PostgreSQL struct {
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	Database string `yaml:"database"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
-func (mysql *MySQL) GetAddress() string {
-	if mysql.Address == "" {
-		mysql.Address = "localhost:3306"
+func (postgres *PostgreSQL) GetHost() string {
+	if postgres.Host == "" {
+		postgres.Host = "127.0.0.1"
 	}
 
-	return mysql.Address
+	return postgres.Host
 }
 
-func (mysql *MySQL) SetAddress(address string) {
-	mysql.Address = address
+func (postgres *PostgreSQL) SetHost(host string) {
+	postgres.Host = host
 }
 
-func (mysql *MySQL) GetDatabase() string {
-	return mysql.Database
+func (postgres *PostgreSQL) GetPort() string {
+	if postgres.Port == "" {
+		postgres.Port = "5432"
+	}
+
+	return postgres.Port
 }
 
-func (mysql *MySQL) SetDatabase(database string) {
-	mysql.Database = database
+func (postgres *PostgreSQL) SetPort(port string) {
+	postgres.Port = port
 }
 
-func (mysql *MySQL) GetUsername() string {
-	return mysql.Username
+func (postgres *PostgreSQL) GetDatabase() string {
+	return postgres.Database
 }
 
-func (mysql *MySQL) SetUsername(username string) {
-	mysql.Username = username
+func (postgres *PostgreSQL) SetDatabase(database string) {
+	postgres.Database = database
 }
 
-func (mysql *MySQL) GetPassword() string {
-	return mysql.Password
+func (postgres *PostgreSQL) GetUsername() string {
+	return postgres.Username
 }
 
-func (mysql *MySQL) SetPassword(password string) {
-	mysql.Password = password
+func (postgres *PostgreSQL) SetUsername(username string) {
+	postgres.Username = username
 }
 
-func (mysql *MySQL) IsPasswordSkipped() bool {
-	return mysql.SkipPassword
+func (postgres *PostgreSQL) GetPassword() string {
+	return postgres.Password
+}
+
+func (postgres *PostgreSQL) SetPassword(password string) {
+	postgres.Password = password
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -203,28 +210,12 @@ func (influx *Influx) GetReplicas() []string {
 
 //------------------------------------------------------------------------------------------------------------
 
-type Client struct {
-	Id  string `yaml:"id"`
-	Url string `yaml:"url"`
-}
-
-func (client *Client) GetId() string {
-	return client.Id
-}
-
-func (client *Client) GetUrl() string {
-	return client.Url
-}
-
-//------------------------------------------------------------------------------------------------------------
-
 type Configuration struct {
 	Dockerized  bool
-	Environment string    `yaml:"environment"`
-	Server      *Server   `yaml:"server"`
-	Influx      *Influx   `yaml:"influx"`
-	MySQL       *MySQL    `yaml:"mysql"`
-	Clients     []*Client `yaml:"clients"`
+	Environment string      `yaml:"environment"`
+	Server      *Server     `yaml:"server"`
+	Influx      *Influx     `yaml:"influx"`
+	PostgreSQL  *PostgreSQL `yaml:"postgres"`
 }
 
 func (configuration *Configuration) IsDockerized() bool {
@@ -275,7 +266,7 @@ func (configuration *Configuration) GetInfluxConfiguration() IInfluxConfiguratio
 	if configuration.Influx == nil {
 		configuration.Influx = &Influx{
 			Enabled:  false,
-			Address:  "http://localhost:8086",
+			Address:  "http://127.0.0.1:8086",
 			Database: "",
 			Username: "",
 			Password: "",
@@ -285,30 +276,17 @@ func (configuration *Configuration) GetInfluxConfiguration() IInfluxConfiguratio
 	return configuration.Influx
 }
 
-func (configuration *Configuration) GetMySQLConfiguration() IMySqlConfiguration {
-	if configuration.MySQL == nil {
-		configuration.MySQL = &MySQL{
-			Address:      "localhost:3306",
-			Username:     "",
-			Password:     "",
-			SkipPassword: false,
+func (configuration *Configuration) GetPostgreSQLConfiguration() IPostgreSQLConfiguration {
+	if configuration.PostgreSQL == nil {
+		configuration.PostgreSQL = &PostgreSQL{
+			Host:     "127.0.0.1",
+			Port:     "5432",
+			Username: "",
+			Password: "",
 		}
 	}
 
-	return configuration.MySQL
-}
-
-func (configuration *Configuration) GetClientsConfiguration() []IClientConfiguration {
-	if configuration.Clients == nil {
-		configuration.Clients = make([]*Client, 0)
-	}
-
-	result := make([]IClientConfiguration, 0)
-	for _, client := range configuration.Clients {
-		result = append(result, client)
-	}
-
-	return result
+	return configuration.PostgreSQL
 }
 
 func (configuration *Configuration) GetPorts() (int, int, int) {
@@ -338,12 +316,12 @@ func NewConfiguration(path string, dockerized bool) (IConfiguration, error) {
 	}
 
 	if dockerized {
-		conf.MySQL = &MySQL{
-			Address:      fmt.Sprintf("%s:%s", os.Getenv("MYSQL_ADDRESS"), os.Getenv("MYSQL_PORT")),
-			Database:     os.Getenv("MYSQL_DATABASE"),
-			Username:     os.Getenv("MYSQL_USER"),
-			Password:     os.Getenv("MYSQL_PASSWORD"),
-			SkipPassword: false,
+		conf.PostgreSQL = &PostgreSQL{
+			Host:     os.Getenv("POSTGRES_ADDRESS"),
+			Port:     os.Getenv("POSTGRES_PORT"),
+			Database: os.Getenv("POSTGRES_DATABASE"),
+			Username: os.Getenv("POSTGRES_USER"),
+			Password: os.Getenv("POSTGRES_PASSWORD"),
 		}
 
 		conf.Influx = &Influx{
@@ -400,16 +378,16 @@ func NewTestConfiguration() IConfiguration {
 		},
 		Influx: &Influx{
 			Enabled:  false,
-			Address:  "http://localhost:8086",
+			Address:  "http://127.0.0.1:8086",
 			Database: "",
 			Username: "",
 			Password: "",
 		},
-		MySQL: &MySQL{
-			Address:      "localhost:3306",
-			Username:     "root",
-			Password:     "password",
-			SkipPassword: false,
+		PostgreSQL: &PostgreSQL{
+			Host:     "127.0.0.1",
+			Port:     "5432",
+			Username: "root",
+			Password: "password",
 		},
 	}
 }
@@ -425,16 +403,16 @@ func NewBenchmarkConfiguration() IConfiguration {
 		},
 		Influx: &Influx{
 			Enabled:  false,
-			Address:  "http://localhost:8086",
+			Address:  "http://127.0.0.1:8086",
 			Database: "",
 			Username: "",
 			Password: "",
 		},
-		MySQL: &MySQL{
-			Address:      "localhost:3306",
-			Username:     "root",
-			Password:     "password",
-			SkipPassword: false,
+		PostgreSQL: &PostgreSQL{
+			Host:     "127.0.0.1",
+			Port:     "5432",
+			Username: "root",
+			Password: "password",
 		},
 	}
 }
