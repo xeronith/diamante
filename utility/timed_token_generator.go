@@ -22,7 +22,8 @@ func NewTimedTokenGenerator(duration time.Duration) system.ITimedTokenGenerator 
 }
 
 func (generator *timedTokenGenerator) Generate() string {
-	token := uuid.NewV4().String()
+	id, _ := uuid.NewV4()
+	token := id.String()
 
 	generator.Lock()
 	defer generator.Unlock()

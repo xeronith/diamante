@@ -83,8 +83,10 @@ func (scheduler *scheduler) Cancel(id string) {
 }
 
 func (scheduler *scheduler) set(callback func(), duration time.Duration, recurring bool) string {
+	id, _ := uuid.NewV4()
+
 	_future := future{
-		id:        uuid.NewV4().String(),
+		id:        id.String(),
 		duration:  duration,
 		timeout:   time.Now().Add(duration),
 		callback:  callback,
