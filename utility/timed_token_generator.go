@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/xeronith/diamante/contracts/system"
 )
 
@@ -22,7 +22,7 @@ func NewTimedTokenGenerator(duration time.Duration) system.ITimedTokenGenerator 
 }
 
 func (generator *timedTokenGenerator) Generate() string {
-	token := uuid.New().String()
+	token := uuid.NewV4().String()
 
 	generator.Lock()
 	defer generator.Unlock()
