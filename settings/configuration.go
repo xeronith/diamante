@@ -386,7 +386,7 @@ func NewTestConfiguration() IConfiguration {
 		PostgreSQL: &PostgreSQL{
 			Host:     "127.0.0.1",
 			Port:     "5432",
-			Username: "root",
+			Username: "postgres",
 			Password: "password",
 		},
 	}
@@ -411,7 +411,7 @@ func NewBenchmarkConfiguration() IConfiguration {
 		PostgreSQL: &PostgreSQL{
 			Host:     "127.0.0.1",
 			Port:     "5432",
-			Username: "root",
+			Username: "postgres",
 			Password: "password",
 		},
 	}
