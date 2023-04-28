@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"net/http"
 	"runtime/debug"
@@ -113,56 +112,6 @@ func (server *baseServer) ResolveClientVersion(clientName string) int32 {
 	}
 
 	return 0
-}
-
-func (server *baseServer) probeClients() {
-	logger := server.logger
-	configuration := server.configuration
-
-	for _, client := range configuration.GetClientsConfiguration() {
-		func(client IClientConfiguration) {
-			url := fmt.Sprintf("https://%s/build.devops", client.GetUrl())
-			resp, err := http.Get(url)
-			if err != nil {
-				logger.SysComp(fmt.Sprintf("✗ Failed to load client info from %s: %s", url, err))
-				return
-			}
-
-			//noinspection GoUnhandledErrorResult
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				logger.SysComp(fmt.Sprintf("✗ Failed to load client info from %s: (%d) %s", url, resp.StatusCode, resp.Status))
-				return
-			}
-
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				logger.SysComp(fmt.Sprintf("✗ Failed to load client info from %s: %s", url, err))
-				return
-			}
-
-			content := string(body)
-			if len(content) < 1 {
-				logger.SysComp(fmt.Sprintf("✗ Failed to load client info from %s: empty", url))
-				return
-			}
-
-			content = content[:len(content)-1]
-			info, err := strconv.ParseInt(content, 10, 32)
-			if err != nil {
-				logger.SysComp(fmt.Sprintf("✗ Failed to load client info from %s: %s", url, err))
-				return
-			}
-
-			version := int32(info)
-			currentVersion := server.ResolveClientVersion(client.GetId())
-			if currentVersion == 0 || currentVersion < version {
-				server.RegisterClientVersion(client.GetId(), version)
-				logger.SysComp(fmt.Sprintf("✓ %s:v%d registered via https://%s/", client.GetId(), version, client.GetUrl()))
-			}
-		}(client)
-	}
 }
 
 func (server *baseServer) Version() int32 {

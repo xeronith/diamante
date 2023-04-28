@@ -3,11 +3,11 @@ package server
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/valyala/fasthttp/reuseport"
 	. "github.com/xeronith/diamante/actor"
 	. "github.com/xeronith/diamante/contracts/actor"
 	"github.com/xeronith/diamante/contracts/operation"
@@ -16,7 +16,7 @@ import (
 )
 
 func (server *defaultServer) startActiveServer() {
-	listener, err := reuseport.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", server.activePort))
+	listener, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", server.activePort))
 	if err != nil {
 		log.Fatalf("ACTIVE SERVER LISTENER FATAL ERROR: %s", err)
 	}

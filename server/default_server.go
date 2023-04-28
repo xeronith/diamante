@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"net"
 	"sync"
-	"time"
 
 	_ "embed"
 
@@ -151,11 +150,6 @@ func (server *defaultServer) Start() {
 
 	server.running = true
 	server.measurement("core", analytics.Tags{"type": "i"}, analytics.Fields{"event": "0"})
-
-	//TODO: Use hooks instead of polling
-	server.scheduler.SetInterval(func() {
-		server.probeClients()
-	}, 10*time.Second)
 
 	if server.onServerStarted != nil {
 		server.onServerStarted()

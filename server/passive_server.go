@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"mime"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/valyala/fasthttp/reuseport"
 	. "github.com/xeronith/diamante/actor"
 	. "github.com/xeronith/diamante/contracts/actor"
 	. "github.com/xeronith/diamante/contracts/network/http"
@@ -30,7 +30,7 @@ type uploadedMedia struct {
 }
 
 func (server *defaultServer) startPassiveServer() {
-	listener, err := reuseport.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", server.passivePort))
+	listener, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", server.passivePort))
 	if err != nil {
 		log.Fatalf("PASSIVE SERVER LISTENER FATAL ERROR: %s", err)
 	}

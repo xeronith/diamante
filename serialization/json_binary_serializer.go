@@ -1,15 +1,13 @@
 package serialization
 
 import (
+	"encoding/json"
 	"errors"
 
-	jsoniter "github.com/json-iterator/go"
 	. "github.com/xeronith/diamante/contracts/serialization"
 	. "github.com/xeronith/diamante/contracts/system"
 	"github.com/xeronith/diamante/utility/reflection"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type jsonBinarySerializer struct {
 }

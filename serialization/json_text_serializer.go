@@ -1,6 +1,7 @@
 package serialization
 
 import (
+	"encoding/json"
 	"errors"
 
 	. "github.com/xeronith/diamante/contracts/serialization"
