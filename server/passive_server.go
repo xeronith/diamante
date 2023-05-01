@@ -330,6 +330,7 @@ func (server *defaultServer) startPassiveServer() {
 	passiveServer.Server.ReadTimeout = time.Second * 15
 	passiveServer.Server.WriteTimeout = time.Second * 15
 
+	server.logger.SysComp(fmt.Sprintf("┄ Listening on port %d", server.passivePort))
 	if err := passiveServer.Start(""); err != nil {
 		// server.logger.Critical(fmt.Sprintf("PASSIVE SERVER FAILURE: %s", err))
 		_ = err

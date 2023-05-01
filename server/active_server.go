@@ -95,7 +95,9 @@ func (server *defaultServer) startActiveServer() {
 	activeServer.Server.WriteTimeout = time.Second * 15
 
 	activeServer.GET("/", handler)
+
 	if err := activeServer.Start(""); err != nil {
 		// server.logger.Critical(fmt.Sprintf("ACTIVE SERVER FAILURE: %s", err))
+		_ = err
 	}
 }
