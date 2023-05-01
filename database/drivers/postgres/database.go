@@ -23,14 +23,12 @@ type sqlDatabase struct {
 }
 
 func NewDatabase(configuration IConfiguration, logger ILogger, dbname string) ISqlDatabase {
-	if !configuration.IsDockerized() {
-		if configuration.IsTestEnvironment() {
-			dbname = fmt.Sprintf("%s_test", dbname)
-		} else if configuration.IsDevelopmentEnvironment() {
-			dbname = fmt.Sprintf("%s_dev", dbname)
-		} else if configuration.IsStagingEnvironment() {
-			dbname = fmt.Sprintf("%s_staging", dbname)
-		}
+	if configuration.IsTestEnvironment() {
+		dbname = fmt.Sprintf("%s_test", dbname)
+	} else if configuration.IsDevelopmentEnvironment() {
+		dbname = fmt.Sprintf("%s_dev", dbname)
+	} else if configuration.IsStagingEnvironment() {
+		dbname = fmt.Sprintf("%s_staging", dbname)
 	}
 
 	host := configuration.GetPostgreSQLConfiguration().GetHost()
