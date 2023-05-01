@@ -3,10 +3,10 @@ package serialization
 import (
 	"errors"
 
-	"github.com/golang/protobuf/proto"
 	. "github.com/xeronith/diamante/contracts/serialization"
 	. "github.com/xeronith/diamante/contracts/system"
 	"github.com/xeronith/diamante/utility/reflection"
+	"google.golang.org/protobuf/proto"
 )
 
 type protobufSerializer struct {
