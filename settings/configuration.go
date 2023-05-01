@@ -2,6 +2,7 @@ package settings
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/jinzhu/configor"
@@ -317,7 +318,7 @@ func NewConfiguration(path string, dockerized bool) (IConfiguration, error) {
 
 	if dockerized {
 		conf.PostgreSQL = &PostgreSQL{
-			Host:     os.Getenv("POSTGRES_ADDRESS"),
+			Host:     os.Getenv("POSTGRES_HOST"),
 			Port:     os.Getenv("POSTGRES_PORT"),
 			Database: os.Getenv("POSTGRES_DATABASE"),
 			Username: os.Getenv("POSTGRES_USER"),
@@ -345,12 +346,33 @@ func NewConfiguration(path string, dockerized bool) (IConfiguration, error) {
 	}
 
 	if conf.Server != nil {
-		if os.Getenv("DIAMANTE_FQDN") != "" {
-			conf.Server.FQDN = os.Getenv("DIAMANTE_FQDN")
+		if os.Getenv("FQDN") != "" {
+			conf.Server.FQDN = os.Getenv("FQDN")
 		}
 
-		if os.Getenv("DIAMANTE_PROTOCOL") != "" {
-			conf.Server.Protocol = os.Getenv("DIAMANTE_PROTOCOL")
+		if os.Getenv("PROTOCOL") != "" {
+			conf.Server.Protocol = os.Getenv("PROTOCOL")
+		}
+
+		if os.Getenv("PORT") != "" {
+			port, err := strconv.Atoi(os.Getenv("PORT"))
+			if err != nil {
+				return nil, err
+			}
+
+			conf.Server.Ports = &Ports{
+				Active:      7070,
+				Passive:     port,
+				Diagnostics: 6061,
+			}
+		}
+
+		if os.Getenv("SECURE_COOKIE_HASH_KEY") != "" {
+			conf.Server.HashKey = os.Getenv("SECURE_COOKIE_HASH_KEY")
+		}
+
+		if os.Getenv("SECURE_COOKIE_BLOCK_KEY") != "" {
+			conf.Server.BlockKey = os.Getenv("SECURE_COOKIE_BLOCK_KEY")
 		}
 	}
 
