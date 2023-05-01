@@ -344,6 +344,10 @@ func NewConfiguration(path string, dockerized bool) (IConfiguration, error) {
 			Password: os.Getenv("INFLUX_PASSWORD"),
 		}
 
+		if conf.Influx.Address == "" {
+			conf.Influx.Address = "http://localhost:8086"
+		}
+
 		conf.Environment = os.Getenv("ENVIRONMENT")
 	} else {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
