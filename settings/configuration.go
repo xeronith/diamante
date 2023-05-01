@@ -4,10 +4,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jinzhu/configor"
 	. "github.com/xeronith/diamante/contracts/settings"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"gopkg.in/yaml.v2"
 )
 
 type Server struct {
@@ -338,14 +338,10 @@ func NewConfiguration(path string, dockerized bool) (IConfiguration, error) {
 			return nil, err
 		}
 
-		configFile, err := os.Open(path)
-		if err != nil {
+		if err := configor.Load(conf, path); err != nil {
 			return nil, err
 		}
 
-		if err := yaml.NewDecoder(configFile).Decode(conf); err != nil {
-			return nil, err
-		}
 	}
 
 	if conf.Server != nil {
