@@ -314,9 +314,20 @@ func (configuration *Configuration) GetPorts() (int, int, int) {
 func NewConfiguration(path string, dockerized bool) (IConfiguration, error) {
 	conf := &Configuration{
 		Dockerized: dockerized,
+		Server:     &Server{},
 	}
 
 	if dockerized {
+		conf.Server = &Server{
+			FQDN:     "localhost",
+			Protocol: "http",
+			Ports: &Ports{
+				Active:      7070,
+				Passive:     7080,
+				Diagnostics: 6061,
+			},
+		}
+
 		conf.PostgreSQL = &PostgreSQL{
 			Host:     os.Getenv("POSTGRES_HOST"),
 			Port:     os.Getenv("POSTGRES_PORT"),
@@ -342,7 +353,6 @@ func NewConfiguration(path string, dockerized bool) (IConfiguration, error) {
 		if err := configor.Load(conf, path); err != nil {
 			return nil, err
 		}
-
 	}
 
 	if conf.Server != nil {
@@ -391,8 +401,8 @@ func NewTestConfiguration() IConfiguration {
 		Server: &Server{
 			FQDN:     "localhost",
 			Protocol: "http",
-			HashKey:  "OKq2gLmDCYJXnPweKrM=l7dFCDxp5Ff5EupcQCU",
-			BlockKey: "v1K1s+S3vWudrypR",
+			HashKey:  "",
+			BlockKey: "",
 		},
 		Influx: &Influx{
 			Enabled:  false,
@@ -416,8 +426,8 @@ func NewBenchmarkConfiguration() IConfiguration {
 		Server: &Server{
 			FQDN:     "localhost",
 			Protocol: "http",
-			HashKey:  "OKq2gLmDCYJXnPweKrM=l7dFCDxp5Ff5EupcQCU",
-			BlockKey: "v1K1s+S3vWudrypR",
+			HashKey:  "",
+			BlockKey: "",
 		},
 		Influx: &Influx{
 			Enabled:  false,
