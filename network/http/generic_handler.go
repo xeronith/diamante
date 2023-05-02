@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"time"
@@ -33,12 +34,24 @@ func Handle[T, V protoreflect.ProtoMessage](
 	}
 
 	if len(body) > 0 {
+		if onRequestProcessed != nil {
+			body, err = json.Marshal(struct {
+				Body string `json:"body"`
+			}{Body: string(body)})
+
+			if err != nil {
+				return err
+			}
+		}
+
 		if err := protojson.Unmarshal(body, input); err != nil {
 			return err
 		}
 	}
 
-	onInputUnmarshalled(input)
+	if onInputUnmarshalled != nil {
+		onInputUnmarshalled(input)
+	}
 
 	request := CreateBinaryOperationRequest(
 		uint64(time.Now().UnixNano()),
