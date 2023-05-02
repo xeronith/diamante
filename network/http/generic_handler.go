@@ -22,6 +22,7 @@ func Handle[T, V protoreflect.ProtoMessage](
 	input T,
 	output V,
 	onInputUnmarshalled func(T),
+	onRequestProcessed func(V) (string, []byte),
 	redirect bool,
 ) error {
 	x.Logger().Debug(entryPoint)
@@ -80,14 +81,20 @@ func Handle[T, V protoreflect.ProtoMessage](
 	}
 
 	if !redirect {
-		data, err = protojson.Marshal(output)
-		if err != nil {
-			return err
-		}
+		if onRequestProcessed != nil {
+			contentType, data := onRequestProcessed(output)
+			x.Response().Header().Add("Content-Type", contentType)
+			_, _ = x.Response().Write(data)
+		} else {
+			data, err := protojson.Marshal(output)
+			if err != nil {
+				return err
+			}
 
-		x.Response().Header().Add("Content-Type", "application/activity+json; charset=utf-8")
-		// x.Response().Header().Add("Content-Type", "application/json; charset=utf-8")
-		_, _ = x.Response().Write(data)
+			x.Response().Header().Add("Content-Type", "application/activity+json; charset=utf-8")
+			// x.Response().Header().Add("Content-Type", "application/json; charset=utf-8")
+			_, _ = x.Response().Write(data)
+		}
 	}
 
 	return nil
