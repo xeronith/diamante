@@ -36,8 +36,8 @@ func Handle[T, V protoreflect.ProtoMessage](
 	if len(body) > 0 {
 		if onRequestProcessed != nil {
 			body, err = json.Marshal(struct {
-				Body string `json:"body"`
-			}{Body: string(body)})
+				Body []byte `json:"body"`
+			}{Body: body})
 
 			if err != nil {
 				return err
