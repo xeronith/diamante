@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
+	. "github.com/gorilla/websocket"
 	. "github.com/xeronith/diamante/contracts/io"
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/serialization"
 	. "github.com/xeronith/diamante/contracts/server"
-	. "github.com/xeronith/diamante/websocket"
 )
 
 type webSocketWriter struct {

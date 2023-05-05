@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	. "github.com/xeronith/diamante/actor"
 	. "github.com/xeronith/diamante/contracts/actor"
 	"github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/io"
-	"github.com/xeronith/diamante/websocket"
 )
 
 func (server *defaultServer) startActiveServer() {
@@ -47,14 +47,6 @@ func (server *defaultServer) startActiveServer() {
 
 		defer writer.Close()
 		server.OnSocketConnected(actor)
-
-		connection.SetPingHandler(func(data string) error {
-			if err := connection.WritePong(); err != nil {
-				server.logger.Error(fmt.Sprintf("SERVER SOCKET PONG ERROR: %s", err))
-			}
-
-			return nil
-		})
 
 		for {
 			messageType, message, err := connection.ReadMessage()

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	. "github.com/xeronith/diamante/contracts/client"
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/serialization"
@@ -15,7 +16,6 @@ import (
 	"github.com/xeronith/diamante/operation/binary"
 	"github.com/xeronith/diamante/server"
 	"github.com/xeronith/diamante/utility/reflection"
-	"github.com/xeronith/diamante/websocket"
 )
 
 type webSocketClient struct {
