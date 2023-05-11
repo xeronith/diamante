@@ -96,8 +96,9 @@ func (writer *httpWriter) Write(operation IOperationResult) {
 		pipelineDuration := float64(time.Since(writer.timestamp).Microseconds()) / 1000
 		serverVersion := result.ServerVersion()
 
-		writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("action;desc=\"%s\",version;desc=\"Build %d\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", action, serverVersion, pipelineDuration, serviceDuration))
+		writer.context.Response().Header().Add("X-Powered-By", "Magic")
 		writer.context.Response().Header().Add("X-Request-ID", fmt.Sprintf("%d", result.Id()))
+		writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("action;desc=\"%s\",version;desc=\"Build %d\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", action, serverVersion, pipelineDuration, serviceDuration))
 
 		if err == nil {
 			if err := writer.context.Blob(int(result.Status()), echo.MIMEOctetStream, data); err == nil {
