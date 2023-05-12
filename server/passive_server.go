@@ -22,11 +22,13 @@ import (
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/io"
 	dispatcher "github.com/xeronith/diamante/network/http"
+	"github.com/xeronith/diamante/utility"
 )
 
 type uploadedMedia struct {
-	Url         string `json:"url"`
-	ContentType string `json:"contentType"`
+	ContentType  string `json:"contentType"`
+	ThumbnailUrl string `json:"thumbnailUrl"`
+	Url          string `json:"url"`
 }
 
 func (server *defaultServer) startPassiveServer() {
@@ -147,21 +149,21 @@ func (server *defaultServer) startPassiveServer() {
 
 		// DetectContentType only needs the first 512 bytes
 		fileType := http.DetectContentType(fileBytes)
-		switch fileType {
-		case "image/jpeg", "image/jpg":
-		case "image/gif", "image/png":
-		case "video/x-flv":
-		case "video/mp4":
-		case "application/x-mpegURL":
-		case "video/MP2T":
-		case "video/quicktime":
-		case "video/3gpp":
-		case "video/x-msvideo":
-		case "video/x-ms-wmv":
-			break
+		/* switch fileType {
+		case
+			"image/jpeg", "image/jpg",
+			"image/gif", "image/png",
+			"video/x-flv",
+			"video/mp4",
+			"application/x-mpegURL",
+			"video/MP2T",
+			"video/quicktime",
+			"video/3gpp",
+			"video/x-msvideo",
+			"video/x-ms-wmv":
 		default:
 			return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE_TYPE")
-		}
+		} */
 
 		data := make([]byte, 12)
 		rand.Read(data)
@@ -173,6 +175,7 @@ func (server *defaultServer) startPassiveServer() {
 		}
 
 		newPath := filepath.Join(UPLOAD_PATH, fileName+fileEndings[len(fileEndings)-1])
+		thumbnailPath := filepath.Join(UPLOAD_PATH, fileName+"_thumbnail.jpg")
 		newFile, err := os.Create(newPath)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
@@ -183,13 +186,23 @@ func (server *defaultServer) startPassiveServer() {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
 		}
 
+		thumbnailUrl := ""
+		if err := utility.CreateThumbnail(newPath, thumbnailPath, 400, 400); err == nil {
+			thumbnailUrl = fmt.Sprintf("%s://%s/%s",
+				server.configuration.GetServerConfiguration().GetProtocol(),
+				server.configuration.GetServerConfiguration().GetFQDN(),
+				thumbnailPath,
+			)
+		}
+
 		return ctx.JSON(http.StatusOK, uploadedMedia{
+			ContentType:  fileType,
+			ThumbnailUrl: thumbnailUrl,
 			Url: fmt.Sprintf("%s://%s/%s",
 				server.configuration.GetServerConfiguration().GetProtocol(),
 				server.configuration.GetServerConfiguration().GetFQDN(),
 				newPath,
 			),
-			ContentType: fileType,
 		})
 	})
 
@@ -223,7 +236,7 @@ func (server *defaultServer) startPassiveServer() {
 
 			// DetectContentType only needs the first 512 bytes
 			fileType := http.DetectContentType(fileBytes)
-			switch fileType {
+			/* switch fileType {
 			case
 				"image/jpeg", "image/jpg",
 				"image/gif", "image/png",
@@ -235,10 +248,9 @@ func (server *defaultServer) startPassiveServer() {
 				"video/3gpp",
 				"video/x-msvideo",
 				"video/x-ms-wmv":
-
 			default:
 				return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE_TYPE")
-			}
+			} */
 
 			data := make([]byte, 12)
 			rand.Read(data)
@@ -250,6 +262,7 @@ func (server *defaultServer) startPassiveServer() {
 			}
 
 			newPath := filepath.Join(UPLOAD_PATH, fileName+fileEndings[len(fileEndings)-1])
+			thumbnailPath := filepath.Join(UPLOAD_PATH, fileName+"_thumbnail.jpg")
 			newFile, err := os.Create(newPath)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
@@ -260,13 +273,23 @@ func (server *defaultServer) startPassiveServer() {
 				return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
 			}
 
+			thumbnailUrl := ""
+			if err := utility.CreateThumbnail(newPath, thumbnailPath, 400, 400); err == nil {
+				thumbnailUrl = fmt.Sprintf("%s://%s/%s",
+					server.configuration.GetServerConfiguration().GetProtocol(),
+					server.configuration.GetServerConfiguration().GetFQDN(),
+					thumbnailPath,
+				)
+			}
+
 			uploadedFiles = append(uploadedFiles, uploadedMedia{
+				ContentType:  fileType,
+				ThumbnailUrl: thumbnailUrl,
 				Url: fmt.Sprintf("%s://%s/%s",
 					server.configuration.GetServerConfiguration().GetProtocol(),
 					server.configuration.GetServerConfiguration().GetFQDN(),
 					newPath,
 				),
-				ContentType: fileType,
 			})
 		}
 
