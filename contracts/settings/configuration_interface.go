@@ -21,6 +21,8 @@ type (
 		GetTLSConfiguration() ITLSConfiguration
 		GetBuildNumber() int32
 		SetBuildNumber(int32)
+		GetJwtTokenKey() string
+		GetJwtTokenExpiration() string
 		GetHashKey() string
 		GetBlockKey() string
 	}

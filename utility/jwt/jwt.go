@@ -9,23 +9,14 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-const (
-	// TOKEN_KEY returns the jwt token secret
-	TOKEN_KEY = "A9VxLvehJEnwMcsfG18=atlXh$FMOe^7M619oDs1g=bcrTWgGNYpnowkog5rA"
-	// TOKEN_EXP returns the jwt token expiration duration.
-	// Should be time.ParseDuration string. Source: https://golang.org/pkg/time/#ParseDuration
-	// default: 10h
-	TOKEN_EXP = "10h"
-)
-
 type TokenPayload struct {
 	ID int64
 }
 
-func Generate() string {
+func Generate(tokenKey, tokenExpiration string) string {
 	payload := &TokenPayload{ID: time.Now().UnixNano()}
 
-	v, err := time.ParseDuration(TOKEN_EXP)
+	v, err := time.ParseDuration(tokenExpiration)
 
 	if err != nil {
 		panic("Invalid time duration. Should be time.ParseDuration string")
@@ -36,7 +27,7 @@ func Generate() string {
 		"ID":  payload.ID,
 	})
 
-	token, err := t.SignedString([]byte(TOKEN_KEY))
+	token, err := t.SignedString([]byte(tokenKey))
 
 	if err != nil {
 		panic(err)
@@ -45,18 +36,18 @@ func Generate() string {
 	return token
 }
 
-func parse(token string) (*jwt.Token, error) {
+func parse(token, tokenKey string) (*jwt.Token, error) {
 	return jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 
-		return []byte(TOKEN_KEY), nil
+		return []byte(tokenKey), nil
 	})
 }
 
-func Verify(token string) (*TokenPayload, error) {
-	parsed, err := parse(token)
+func Verify(token, tokenKey string) (*TokenPayload, error) {
+	parsed, err := parse(token, tokenKey)
 
 	if err != nil {
 		return nil, err

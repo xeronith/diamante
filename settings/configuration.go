@@ -12,13 +12,15 @@ import (
 )
 
 type Server struct {
-	FQDN        string `yaml:"fqdn"`
-	Protocol    string `yaml:"protocol"`
-	Ports       *Ports `yaml:"ports"`
-	TLS         *TLS   `yaml:"tls"`
-	BuildNumber int32  `yaml:"build_number"`
-	HashKey     string `yaml:"hash_key"`
-	BlockKey    string `yaml:"block_key"`
+	FQDN               string `yaml:"fqdn"`
+	Protocol           string `yaml:"protocol"`
+	Ports              *Ports `yaml:"ports"`
+	TLS                *TLS   `yaml:"tls"`
+	BuildNumber        int32  `yaml:"build_number"`
+	JwtTokenKey        string `yaml:"jwt_token_key"`
+	JwtTokenExpiration string `yaml:"jwt_token_expiration"`
+	HashKey            string `yaml:"hash_key"`
+	BlockKey           string `yaml:"block_key"`
 }
 
 func (server *Server) GetFQDN() string {
@@ -67,6 +69,18 @@ func (server *Server) GetBuildNumber() int32 {
 
 func (server *Server) SetBuildNumber(value int32) {
 	server.BuildNumber = value
+}
+
+func (server *Server) GetJwtTokenKey() string {
+	return server.JwtTokenKey
+}
+
+func (server *Server) GetJwtTokenExpiration() string {
+	if strings.TrimSpace(server.JwtTokenExpiration) == "" {
+		server.JwtTokenExpiration = "10h"
+	}
+
+	return server.JwtTokenExpiration
 }
 
 func (server *Server) GetHashKey() string {
@@ -381,6 +395,14 @@ func NewConfiguration(path string, dockerized bool) (IConfiguration, error) {
 			}
 		}
 
+		if os.Getenv("JWT_TOKEN_KEY") != "" {
+			conf.Server.JwtTokenKey = os.Getenv("JWT_TOKEN_KEY")
+		}
+
+		if os.Getenv("JWT_TOKEN_EXP") != "" {
+			conf.Server.JwtTokenExpiration = os.Getenv("JWT_TOKEN_EXP")
+		}
+
 		if os.Getenv("SECURE_COOKIE_HASH_KEY") != "" {
 			conf.Server.HashKey = os.Getenv("SECURE_COOKIE_HASH_KEY")
 		}
@@ -403,10 +425,12 @@ func NewTestConfiguration() IConfiguration {
 	return &Configuration{
 		Environment: "test",
 		Server: &Server{
-			FQDN:     "localhost",
-			Protocol: "http",
-			HashKey:  "",
-			BlockKey: "",
+			FQDN:               "localhost",
+			Protocol:           "http",
+			JwtTokenKey:        "",
+			JwtTokenExpiration: "10h",
+			HashKey:            "",
+			BlockKey:           "",
 		},
 		Influx: &Influx{
 			Enabled:  false,
@@ -428,10 +452,12 @@ func NewBenchmarkConfiguration() IConfiguration {
 	return &Configuration{
 		Environment: "test",
 		Server: &Server{
-			FQDN:     "localhost",
-			Protocol: "http",
-			HashKey:  "",
-			BlockKey: "",
+			FQDN:               "localhost",
+			Protocol:           "http",
+			JwtTokenKey:        "",
+			JwtTokenExpiration: "10h",
+			HashKey:            "",
+			BlockKey:           "",
 		},
 		Influx: &Influx{
 			Enabled:  false,
