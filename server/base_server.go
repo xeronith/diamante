@@ -261,7 +261,7 @@ func (server *baseServer) RegisterOperation(operation IOperation) error {
 	}
 
 	if server.operations[operationId] != nil {
-		return errors.New(fmt.Sprintf("operation id %d already registered", operationId))
+		return fmt.Errorf("operation id %d already registered", operationId)
 	}
 
 	server.getOperations()[operationId] = operation
@@ -305,14 +305,14 @@ func (server *baseServer) RegisterHttpHandler(handler IHttpHandler) error {
 	}
 
 	if method != http.MethodGet && method != http.MethodPost {
-		return errors.New(fmt.Sprintf("method '%s' not allowed", method))
+		return fmt.Errorf("method '%s' not allowed", method)
 	}
 
 	switch handler.Method() {
 	case http.MethodGet:
 		{
 			if _, pathExists := server.httpGetHandlers[path]; pathExists {
-				return errors.New(fmt.Sprintf("path GET '%s' already registered", path))
+				return fmt.Errorf("path GET '%s' already registered", path)
 			}
 
 			server.httpGetHandlers[path] = NewHttpHandler(path, method, handlerFunc)
@@ -321,7 +321,7 @@ func (server *baseServer) RegisterHttpHandler(handler IHttpHandler) error {
 	case http.MethodPost:
 		{
 			if _, pathExists := server.httpPostHandlers[path]; pathExists {
-				return errors.New(fmt.Sprintf("path POST '%s' already registered", path))
+				return fmt.Errorf("path POST '%s' already registered", path)
 			}
 
 			server.httpPostHandlers[path] = NewHttpHandler(path, method, handlerFunc)

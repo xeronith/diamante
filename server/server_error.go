@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"runtime/debug"
 	"strings"
 
 	"errors"
@@ -22,9 +21,6 @@ func (server *baseServer) createServerError(developmentEnvironment bool, status 
 
 	if err != nil {
 		message = err.Error()
-		if developmentEnvironment {
-			description = fmt.Sprintf(string(debug.Stack()))
-		}
 	}
 
 	description = server.localizer.Get(message)
