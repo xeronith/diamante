@@ -12,6 +12,7 @@ import (
 	. "github.com/xeronith/diamante/contracts/scheduling"
 	. "github.com/xeronith/diamante/contracts/security"
 	. "github.com/xeronith/diamante/contracts/service"
+	. "github.com/xeronith/diamante/contracts/settings"
 	. "github.com/xeronith/diamante/contracts/system"
 	"github.com/xeronith/diamante/utility/concurrent"
 )
@@ -48,6 +49,10 @@ func acquireContext(timestamp time.Time, server *baseServer, operation IOperatio
 	context.timestamp = timestamp
 
 	return context
+}
+
+func (context *context) Configuration() IConfiguration {
+	return context.server.configuration
 }
 
 func (context *context) SetCookie(key, value string) {

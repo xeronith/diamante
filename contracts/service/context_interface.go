@@ -8,10 +8,12 @@ import (
 	. "github.com/xeronith/diamante/contracts/messaging"
 	. "github.com/xeronith/diamante/contracts/scheduling"
 	. "github.com/xeronith/diamante/contracts/security"
+	. "github.com/xeronith/diamante/contracts/settings"
 	. "github.com/xeronith/diamante/contracts/system"
 )
 
 type IContext interface {
+	Configuration() IConfiguration
 	SetCookie(string, string)
 	GetCookie(string) string
 	Token() string

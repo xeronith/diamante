@@ -226,11 +226,12 @@ func (influx *Influx) GetReplicas() []string {
 //------------------------------------------------------------------------------------------------------------
 
 type Configuration struct {
-	Dockerized  bool
-	Environment string      `yaml:"environment"`
-	Server      *Server     `yaml:"server"`
-	Influx      *Influx     `yaml:"influx"`
-	PostgreSQL  *PostgreSQL `yaml:"postgres"`
+	Dockerized    bool
+	Environment   string      `yaml:"environment"`
+	TrafficRecord bool        `yaml:"traffic_record"`
+	Server        *Server     `yaml:"server"`
+	Influx        *Influx     `yaml:"influx"`
+	PostgreSQL    *PostgreSQL `yaml:"postgres"`
 }
 
 func (configuration *Configuration) IsDockerized() bool {
@@ -255,6 +256,10 @@ func (configuration *Configuration) IsProductionEnvironment() bool {
 
 func (configuration *Configuration) GetEnvironment() string {
 	return cases.Title(language.English, cases.Compact).String(strings.ToLower(configuration.Environment))
+}
+
+func (configuration *Configuration) IsTrafficRecordEnabled() bool {
+	return configuration.TrafficRecord
 }
 
 func (configuration *Configuration) GetServerConfiguration() IServerConfiguration {

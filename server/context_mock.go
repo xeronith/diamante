@@ -9,6 +9,7 @@ import (
 	. "github.com/xeronith/diamante/contracts/scheduling"
 	. "github.com/xeronith/diamante/contracts/security"
 	"github.com/xeronith/diamante/contracts/service"
+	. "github.com/xeronith/diamante/contracts/settings"
 	. "github.com/xeronith/diamante/contracts/system"
 	"github.com/xeronith/diamante/utility/concurrent"
 )
@@ -23,6 +24,10 @@ func CreateMockContext() service.IContext {
 		token:     "SAMPLE-TOKEN",
 		timestamp: time.Now(),
 	}
+}
+
+func (context *mockContext) Configuration() IConfiguration {
+	return nil
 }
 
 func (context *mockContext) SetCookie(string, string) {

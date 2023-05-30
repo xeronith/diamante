@@ -7,6 +7,7 @@ type (
 		IsDevelopmentEnvironment() bool
 		IsStagingEnvironment() bool
 		IsProductionEnvironment() bool
+		IsTrafficRecordEnabled() bool
 		GetEnvironment() string
 		GetServerConfiguration() IServerConfiguration
 		GetInfluxConfiguration() IInfluxConfiguration
