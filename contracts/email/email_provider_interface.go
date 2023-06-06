@@ -1,5 +1,5 @@
 package email
 
 type IEmailProvider interface {
-	Send(string, string) error
+	Send(string, string, ...interface{}) error
 }
