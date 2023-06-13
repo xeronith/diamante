@@ -40,10 +40,10 @@ func (server *defaultServer) startPassiveServer() {
 	server.listeners.Append(listener)
 
 	cors := middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{},
+		AllowOrigins:     server.Configuration().GetAllowedOrigins(),
 		AllowHeaders:     []string{},
 		AllowMethods:     []string{"POST"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           5600,
 	})
 
