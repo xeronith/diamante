@@ -48,10 +48,13 @@ func (writer *httpWriter) SetCookie(key, value string) {
 	encoded, err := writer.secureCookie.Encode(key, value)
 	if err == nil {
 		cookie := &http.Cookie{
-			Name:  key,
-			Value: encoded,
-			Path:  "/",
-			// HttpOnly: true,
+			Name:     key,
+			Value:    encoded,
+			Path:     "/",
+			MaxAge:   7 * 24 * 60 * 60,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
 		}
 		http.SetCookie(writer.context.Response().Writer, cookie)
 	}
