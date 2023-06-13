@@ -54,7 +54,7 @@ func (writer *httpWriter) SetCookie(key, value string) {
 			MaxAge:   7 * 24 * 60 * 60,
 			HttpOnly: true,
 			Secure:   true,
-			SameSite: http.SameSiteLaxMode,
+			SameSite: http.SameSiteNoneMode,
 		}
 		http.SetCookie(writer.context.Response().Writer, cookie)
 	}
