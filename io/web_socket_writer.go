@@ -36,12 +36,21 @@ func (writer *webSocketWriter) IsOpen() bool {
 	return !writer.base.closed
 }
 
-func (writer *webSocketWriter) SetSecureCookie(key, value string) {
+func (writer *webSocketWriter) SetSecureCookie(_, _ string) {
 	writer.base.logger.Error("WEBSOCKET WRITER: SetSecureCookie not supported")
 }
 
-func (writer *webSocketWriter) GetSecureCookie(key string) string {
+func (writer *webSocketWriter) GetSecureCookie(_ string) string {
 	writer.base.logger.Error("WEBSOCKET WRITER: GetSecureCookie not supported")
+	return ""
+}
+
+func (writer *webSocketWriter) SetAuthCookie(_ string) {
+	writer.base.logger.Error("WEBSOCKET WRITER: SetAuthCookie not supported")
+}
+
+func (writer *webSocketWriter) GetAuthCookie() string {
+	writer.base.logger.Error("WEBSOCKET WRITER: GetAuthCookie not supported")
 	return ""
 }
 

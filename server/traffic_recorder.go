@@ -216,24 +216,24 @@ func (recorder *trafficRecorder) Replay(server IServer, speed float32) error {
 					switch entry.dataType {
 					//---------------------------------------------------------------------------------------------------
 					case BINARY_REQUEST:
-						fmt.Println(fmt.Sprintf("▒▒ BO/I ▒▒ %08X %d % X", index+1, entry.timestamp, entry.data))
+						fmt.Printf("▒▒ BO/I ▒▒ %08X %d % X\n", index+1, entry.timestamp, entry.data)
 						actor := CreateActor(nil, false, "", "")
 						actor.SetToken(entry.token)
 						server.OnActorBinaryData(actor, entry.data)
 					case BINARY_RESULT:
-						fmt.Println(fmt.Sprintf("▒▒ BO/O ▒▒ %08X %d % X", index+1, entry.timestamp, entry.data))
+						fmt.Printf("▒▒ BO/O ▒▒ %08X %d % X\n", index+1, entry.timestamp, entry.data)
 					//---------------------------------------------------------------------------------------------------
 					case TEXT_REQUEST:
-						fmt.Println(fmt.Sprintf("▓▓ TO/I ▓▓ %08X %d % X", index+1, entry.timestamp, entry.data))
+						fmt.Printf("▓▓ TO/I ▓▓ %08X %d % X\n", index+1, entry.timestamp, entry.data)
 						actor := CreateActor(nil, false, "", "")
 						actor.SetToken(entry.token)
 						server.OnActorTextData(actor, string(entry.data))
 					case TEXT_RESULT:
-						fmt.Println(fmt.Sprintf("▓▓ TO/O ▓▓ %08X %d % X", index+1, entry.timestamp, entry.data))
+						fmt.Printf("▓▓ TO/O ▓▓ %08X %d % X\n", index+1, entry.timestamp, entry.data)
 					}
 					//---------------------------------------------------------------------------------------------------
 					if index == size-1 {
-						fmt.Print(fmt.Sprintf("──────────────────────────────────────\nTOTAL OPERATIONS: %d\n\n\n", size))
+						fmt.Printf("──────────────────────────────────────\nTOTAL OPERATIONS: %d\n\n\n\n", size)
 						ticker.Stop()
 						return nil
 					}

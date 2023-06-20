@@ -71,6 +71,14 @@ func (writer *httpWriter) GetSecureCookie(key string) string {
 	return ""
 }
 
+func (writer *httpWriter) SetAuthCookie(token string) {
+	writer.SetSecureCookie("Diamante", token)
+}
+
+func (writer *httpWriter) GetAuthCookie() string {
+	return writer.GetSecureCookie("Diamante")
+}
+
 func (writer *httpWriter) SetToken(token string) {
 	writer.base.token = token
 }

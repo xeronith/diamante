@@ -16,6 +16,8 @@ type IContext interface {
 	Configuration() IConfiguration
 	SetSecureCookie(string, string)
 	GetSecureCookie(string) string
+	SetAuthCookie(string)
+	GetAuthCookie() string
 	Token() string
 	Identity() Identity
 	RequestId() uint64

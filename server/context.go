@@ -65,6 +65,16 @@ func (context *context) GetSecureCookie(key string) string {
 	return context.actor.Writer().GetSecureCookie(key)
 }
 
+func (context *context) SetAuthCookie(token string) {
+	if context.actor.Writer() != nil {
+		context.actor.Writer().SetAuthCookie(token)
+	}
+}
+
+func (context *context) GetAuthCookie() string {
+	return context.actor.Writer().GetAuthCookie()
+}
+
 func (context *context) Token() string {
 	return context.actor.Token()
 }

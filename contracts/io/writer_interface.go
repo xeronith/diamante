@@ -10,6 +10,8 @@ type IWriter interface {
 	IsOpen() bool
 	SetSecureCookie(string, string)
 	GetSecureCookie(string) string
+	SetAuthCookie(string)
+	GetAuthCookie() string
 	SetToken(string)
 	Write(IOperationResult)
 	WriteByte(byte) error

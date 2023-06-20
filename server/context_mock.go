@@ -37,6 +37,13 @@ func (context *mockContext) GetSecureCookie(string) string {
 	return ""
 }
 
+func (context *mockContext) SetAuthCookie(string) {
+}
+
+func (context *mockContext) GetAuthCookie() string {
+	return ""
+}
+
 func (context *mockContext) Token() string {
 	return context.token
 }
