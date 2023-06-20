@@ -36,10 +36,12 @@ func (writer *webSocketWriter) IsOpen() bool {
 	return !writer.base.closed
 }
 
-func (writer *webSocketWriter) SetCookie(key, value string) {
+func (writer *webSocketWriter) SetSecureCookie(key, value string) {
+	writer.base.logger.Error("WEBSOCKET WRITER: SetSecureCookie not supported")
 }
 
-func (writer *webSocketWriter) GetCookie(key string) string {
+func (writer *webSocketWriter) GetSecureCookie(key string) string {
+	writer.base.logger.Error("WEBSOCKET WRITER: GetSecureCookie not supported")
 	return ""
 }
 
@@ -50,16 +52,16 @@ func (writer *webSocketWriter) SetToken(token string) {
 func (writer *webSocketWriter) Write(operation IOperationResult) {
 	defer writer.catch()
 
-	switch operation.(type) {
+	switch result := operation.(type) {
 	case IBinaryOperationResult:
-		if data, err := writer.base.binarySerializer.Serialize(operation.(IBinaryOperationResult).Container()); err == nil {
+		if data, err := writer.base.binarySerializer.Serialize(result.Container()); err == nil {
 			writer.WriteBytes(BINARY_RESULT, data)
 		} else {
 			//TODO: Handle the error
 			writer.base.logger.Error(fmt.Sprintf("SOCKET/BOR SERIALIZATION ERROR {%s}: %s", writer.base.token, err))
 		}
 	case ITextOperationResult:
-		if data, err := writer.base.textSerializer.Serialize(operation.(ITextOperationResult).Container()); err == nil {
+		if data, err := writer.base.textSerializer.Serialize(result.Container()); err == nil {
 			writer.WriteBytes(TEXT_RESULT, []byte(data))
 		} else {
 			//TODO: Handle the error
@@ -125,8 +127,7 @@ func (writer *webSocketWriter) WriteBytes(_type int, data []byte) {
 	}
 }
 
-// noinspection GoStandardMethods
-func (writer *webSocketWriter) WriteByte(code byte) {
+func (writer *webSocketWriter) WriteByte(code byte) error {
 	defer writer.catch()
 
 	writer.Lock()
@@ -134,7 +135,7 @@ func (writer *webSocketWriter) WriteByte(code byte) {
 
 	if writer.base.closed {
 		writer.base.logger.Warning("SOCKET WRITE ERROR: writer closed")
-		return
+		return nil
 	}
 
 	if err := writer.connection.WriteMessage(BinaryMessage, []byte{code}); err == nil {
@@ -143,6 +144,8 @@ func (writer *webSocketWriter) WriteByte(code byte) {
 		writer.base.closed = true
 		writer.base.logger.Error(fmt.Sprintf("SOCKET/SIG WRITE ERROR: %s", err))
 	}
+
+	return nil
 }
 
 func (writer *webSocketWriter) End(operation IOperationResult) {
@@ -191,6 +194,7 @@ func (writer *webSocketWriter) Close() {
 func (writer *webSocketWriter) finalize() {
 	if err := writer.connection.Close(); err != nil {
 		// writer.base.logger.Error(fmt.Sprintf("SOCKET/DFR CLOSE ERROR: %s", err))
+		_ = err
 	}
 
 	if writer.base.onClosed != nil {

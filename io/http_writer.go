@@ -44,7 +44,7 @@ func (writer *httpWriter) IsOpen() bool {
 	return !writer.base.closed
 }
 
-func (writer *httpWriter) SetCookie(key, value string) {
+func (writer *httpWriter) SetSecureCookie(key, value string) {
 	encoded, err := writer.secureCookie.Encode(key, value)
 	if err == nil {
 		cookie := &http.Cookie{
@@ -60,14 +60,11 @@ func (writer *httpWriter) SetCookie(key, value string) {
 	}
 }
 
-func (writer *httpWriter) GetCookie(key string) string {
+func (writer *httpWriter) GetSecureCookie(key string) string {
 	var value string
 	if cookie, err := writer.context.Request().Cookie(key); err == nil {
-		if err = writer.secureCookie.Decode(key, cookie.Value, &value); err == nil {
+		if err := writer.secureCookie.Decode(key, cookie.Value, &value); err == nil {
 			return value
-			// fmt.Fprintln(context.Response().Writer, value)
-		} else {
-			// return echo.NewHTTPError(http.StatusUnauthorized, "")
 		}
 	}
 
@@ -89,9 +86,8 @@ func (writer *httpWriter) Write(operation IOperationResult) {
 		return
 	}
 
-	switch operation.(type) {
+	switch result := operation.(type) {
 	case IBinaryOperationResult:
-		result := operation.(IBinaryOperationResult)
 		data, err := writer.base.binarySerializer.Serialize(result.Container())
 
 		action := writer.opcodes[result.Type()]
@@ -111,14 +107,13 @@ func (writer *httpWriter) Write(operation IOperationResult) {
 			}
 		} else {
 			writer.context.Response().Status = http.StatusInternalServerError
-			if _, err := fmt.Fprintf(writer.context.Response(), err.Error()); err == nil {
+			if _, err := fmt.Fprint(writer.context.Response(), err.Error()); err == nil {
 				//TODO: writer.base.trafficRecorder.Record(BINARY_RESULT, data)
 			} else {
 				writer.base.logger.Error(fmt.Sprintf("HTTP/BERR WRITE ERROR: %s", err))
 			}
 		}
 	case ITextOperationResult:
-		result := operation.(ITextOperationResult)
 		data, err := writer.base.textSerializer.Serialize(result.Container())
 		if err == nil {
 			if err := writer.context.String(int(result.Status()), data); err == nil {
@@ -128,7 +123,7 @@ func (writer *httpWriter) Write(operation IOperationResult) {
 			}
 		} else {
 			writer.context.Response().Status = http.StatusInternalServerError
-			if _, err := fmt.Fprintf(writer.context.Response(), err.Error()); err == nil {
+			if _, err := fmt.Fprint(writer.context.Response(), err.Error()); err == nil {
 				//TODO: writer.base.trafficRecorder.Record(TEXT_RESULT, data)
 			} else {
 				writer.base.logger.Error(fmt.Sprintf("HTTP/TERR WRITE ERROR: %s", err))
@@ -139,16 +134,13 @@ func (writer *httpWriter) Write(operation IOperationResult) {
 	}
 }
 
-// noinspection GoStandardMethods
-func (writer *httpWriter) WriteByte(code byte) {
-	_ = code
-	writer.base.logger.Error("not supported")
+func (writer *httpWriter) WriteByte(_ byte) error {
+	writer.base.logger.Error("HTTP WRITER: WriteByte not supported")
+	return nil
 }
 
-func (writer *httpWriter) WriteBytes(_type int, data []byte) {
-	_ = _type
-	_ = data
-	writer.base.logger.Warning("HTTP WRITER: WriteBytes not implemented")
+func (writer *httpWriter) WriteBytes(_ int, _ []byte) {
+	writer.base.logger.Error("HTTP WRITER: WriteBytes not supported")
 }
 
 func (writer *httpWriter) End(operation IOperationResult) {

@@ -14,8 +14,8 @@ import (
 
 type IContext interface {
 	Configuration() IConfiguration
-	SetCookie(string, string)
-	GetCookie(string) string
+	SetSecureCookie(string, string)
+	GetSecureCookie(string) string
 	Token() string
 	Identity() Identity
 	RequestId() uint64

@@ -30,10 +30,10 @@ func (context *mockContext) Configuration() IConfiguration {
 	return nil
 }
 
-func (context *mockContext) SetCookie(string, string) {
+func (context *mockContext) SetSecureCookie(string, string) {
 }
 
-func (context *mockContext) GetCookie(string) string {
+func (context *mockContext) GetSecureCookie(string) string {
 	return ""
 }
 

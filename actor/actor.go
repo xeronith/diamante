@@ -45,7 +45,7 @@ func (actor *actor) Disconnect(result IOperationResult) {
 }
 
 func (actor *actor) Signal(code byte) {
-	actor.writer.WriteByte(code)
+	_ = actor.writer.WriteByte(code)
 }
 
 func (actor *actor) Token() string {

@@ -386,7 +386,7 @@ func (server *baseServer) authorize(actor IActor, operation IOperation) error {
 
 	token := ""
 	if actor.Writer() != nil {
-		token = actor.Writer().GetCookie("Diamante")
+		token = actor.Writer().GetSecureCookie("Diamante")
 	}
 
 	if token == "" {

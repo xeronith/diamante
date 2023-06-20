@@ -55,14 +55,14 @@ func (context *context) Configuration() IConfiguration {
 	return context.server.configuration
 }
 
-func (context *context) SetCookie(key, value string) {
+func (context *context) SetSecureCookie(key, value string) {
 	if context.actor.Writer() != nil {
-		context.actor.Writer().SetCookie(key, value)
+		context.actor.Writer().SetSecureCookie(key, value)
 	}
 }
 
-func (context *context) GetCookie(key string) string {
-	return context.actor.Writer().GetCookie(key)
+func (context *context) GetSecureCookie(key string) string {
+	return context.actor.Writer().GetSecureCookie(key)
 }
 
 func (context *context) Token() string {
