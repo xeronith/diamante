@@ -13,4 +13,5 @@ type IOperationResult interface {
 	Container() Pointer
 	ServerVersion() int32
 	ExecutionDuration() time.Duration
+	Hash() string
 }

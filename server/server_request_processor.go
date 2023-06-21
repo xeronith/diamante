@@ -2,8 +2,10 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/go-faster/city"
 	. "github.com/xeronith/diamante/contracts/actor"
 	. "github.com/xeronith/diamante/contracts/analytics"
 	. "github.com/xeronith/diamante/contracts/messaging"
@@ -101,17 +103,23 @@ func (server *baseServer) OnActorOperationRequest(actor IActor, request IOperati
 
 	var result IOperationResult
 	if nonBinary {
-		data, err := serializer.(ITextSerializer).Serialize(output)
+		resultPayload, err := serializer.(ITextSerializer).Serialize(output)
 		if err != nil {
 			return server.internalServerError(requestId, err, nonBinary, apiVersion, serverVersion, clientVersion)
 		}
-		result = text.CreateTextOperationResult(requestId, OK, contextResultType, data, apiVersion, serverVersion, clientVersion, duration)
+
+		requestPayload := request.(ITextOperationRequest).Payload()
+		hash := fmt.Sprintf("%x-%x-%x", request.Operation(), city.Hash64([]byte(requestPayload)), city.Hash64([]byte(resultPayload)))
+		result = text.CreateTextOperationResult(requestId, OK, contextResultType, resultPayload, apiVersion, serverVersion, clientVersion, duration, hash)
 	} else {
-		data, err := serializer.(IBinarySerializer).Serialize(output)
+		resultPayload, err := serializer.(IBinarySerializer).Serialize(output)
 		if err != nil {
 			return server.internalServerError(requestId, err, nonBinary, apiVersion, serverVersion, clientVersion)
 		}
-		result = binary.CreateBinaryOperationResult(requestId, OK, contextResultType, data, apiVersion, serverVersion, clientVersion, duration)
+
+		requestPayload := request.(IBinaryOperationRequest).Payload()
+		hash := fmt.Sprintf("%x-%x-%x", request.Operation(), city.Hash64(requestPayload), city.Hash64(resultPayload))
+		result = binary.CreateBinaryOperationResult(requestId, OK, contextResultType, resultPayload, apiVersion, serverVersion, clientVersion, duration, hash)
 	}
 
 	return result
@@ -138,7 +146,7 @@ func (server *baseServer) BroadcastSpecific(resultType uint64, payloads map[stri
 					return err
 				}
 
-				binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, serializedPayload, 0, 0, 0, 0)
+				binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, serializedPayload, 0, 0, 0, 0, "")
 				serializedOperationResult, err := serializer.Serialize(binaryOperationResult.Container())
 				if err != nil {
 					server.logger.Error(err)
@@ -182,7 +190,7 @@ func (server *baseServer) Push(actor IActor, message IPushMessage) error {
 		return err
 	}
 
-	binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, data, 0, 0, 0, 0)
+	binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, data, 0, 0, 0, 0, "")
 
 	if data, err = serializer.Serialize(binaryOperationResult.Container()); err != nil {
 		server.logger.Error(err)
@@ -219,7 +227,7 @@ func (server *baseServer) Broadcast(resultType uint64, payload Pointer) error {
 				return err
 			}
 
-			binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, data, 0, 0, 0, 0)
+			binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, data, 0, 0, 0, 0, "")
 
 			if data, err = serializer.Serialize(binaryOperationResult.Container()); err != nil {
 				server.logger.Error(err)

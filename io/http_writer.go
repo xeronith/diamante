@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-faster/city"
 	"github.com/gorilla/securecookie"
 	"github.com/labstack/echo/v4"
 	. "github.com/xeronith/diamante/contracts/io"
@@ -106,7 +105,7 @@ func (writer *httpWriter) Write(operation IOperationResult) {
 
 		writer.context.Response().Header().Add("X-Powered-By", "Magic")
 		writer.context.Response().Header().Add("X-Request-ID", fmt.Sprintf("%d", result.Id()))
-		writer.context.Response().Header().Add("X-Response-Hash", fmt.Sprintf("%d", city.Hash64(result.Payload())))
+		writer.context.Response().Header().Add("X-Response-Hash", result.Hash())
 		writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("action;desc=\"%s\",version;desc=\"Build %d\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", action, serverVersion, pipelineDuration, serviceDuration))
 
 		if err == nil {

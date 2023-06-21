@@ -52,17 +52,17 @@ func (server *baseServer) serverError(id uint64, status int32, _error error, non
 		data, err := server.textSerializer.Serialize(serverError)
 		var factory = text.CreateTextOperationResult
 		if err != nil {
-			result = factory(id, InternalServerError, ERROR, "", apiVersion, serverVersion, clientVersion, 0)
+			result = factory(id, InternalServerError, ERROR, "", apiVersion, serverVersion, clientVersion, 0, "")
 		} else {
-			result = factory(id, status, ERROR, data, apiVersion, serverVersion, clientVersion, 0)
+			result = factory(id, status, ERROR, data, apiVersion, serverVersion, clientVersion, 0, "")
 		}
 	} else {
 		data, err := server.binarySerializer.Serialize(serverError)
 		var factory = binary.CreateBinaryOperationResult
 		if err != nil {
-			result = factory(id, InternalServerError, ERROR, nil, apiVersion, serverVersion, clientVersion, 0)
+			result = factory(id, InternalServerError, ERROR, nil, apiVersion, serverVersion, clientVersion, 0, "")
 		} else {
-			result = factory(id, status, ERROR, data, apiVersion, serverVersion, clientVersion, 0)
+			result = factory(id, status, ERROR, data, apiVersion, serverVersion, clientVersion, 0, "")
 		}
 	}
 

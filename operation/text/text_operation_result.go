@@ -18,7 +18,7 @@ func NewTextOperationResult() ITextOperationResult {
 	return &textOperationResult{}
 }
 
-func CreateTextOperationResult(id uint64, status int32, _type uint64, payload string, apiVersion, serverVersion, clientVersion int32, duration time.Duration) ITextOperationResult {
+func CreateTextOperationResult(id uint64, status int32, _type uint64, payload string, apiVersion, serverVersion, clientVersion int32, duration time.Duration, hash string) ITextOperationResult {
 	return &textOperationResult{
 		container: protobuf.TextOperationResult{
 			Id:            id,
@@ -28,6 +28,7 @@ func CreateTextOperationResult(id uint64, status int32, _type uint64, payload st
 			ApiVersion:    apiVersion,
 			ServerVersion: serverVersion,
 			ClientVersion: clientVersion,
+			Hash:          hash,
 		},
 		duration: duration,
 	}
@@ -59,6 +60,10 @@ func (result *textOperationResult) ServerVersion() int32 {
 
 func (result *textOperationResult) ExecutionDuration() time.Duration {
 	return result.duration
+}
+
+func (result *textOperationResult) Hash() string {
+	return result.container.Hash
 }
 
 func (result *textOperationResult) Load(payload interface{}, serializer ITextSerializer) error {

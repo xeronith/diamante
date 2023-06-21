@@ -25,6 +25,7 @@ message BinaryOperationResult {
     int32 api_version = 5;
     int32 server_version = 6;
     int32 client_version = 7;
+    string hash = 8;
 }
 
 message TextOperationRequest {
@@ -45,6 +46,7 @@ message TextOperationResult {
     int32 api_version = 5;
     int32 server_version = 6;
     int32 client_version = 7;
+    string hash = 8;
 }
 
 message ServerError {

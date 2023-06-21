@@ -18,7 +18,7 @@ func NewBinaryOperationResult() IBinaryOperationResult {
 	return &binaryOperationResult{}
 }
 
-func CreateBinaryOperationResult(id uint64, status int32, _type uint64, payload []byte, apiVersion, serverVersion, clientVersion int32, duration time.Duration) IBinaryOperationResult {
+func CreateBinaryOperationResult(id uint64, status int32, _type uint64, payload []byte, apiVersion, serverVersion, clientVersion int32, duration time.Duration, hash string) IBinaryOperationResult {
 	return &binaryOperationResult{
 		container: protobuf.BinaryOperationResult{
 			Id:            id,
@@ -28,6 +28,7 @@ func CreateBinaryOperationResult(id uint64, status int32, _type uint64, payload 
 			ApiVersion:    apiVersion,
 			ServerVersion: serverVersion,
 			ClientVersion: clientVersion,
+			Hash:          hash,
 		},
 		duration: duration,
 	}
@@ -59,6 +60,10 @@ func (result *binaryOperationResult) ServerVersion() int32 {
 
 func (result *binaryOperationResult) ExecutionDuration() time.Duration {
 	return result.duration
+}
+
+func (result *binaryOperationResult) Hash() string {
+	return result.container.Hash
 }
 
 func (result *binaryOperationResult) Load(payload interface{}, serializer IBinarySerializer) error {
