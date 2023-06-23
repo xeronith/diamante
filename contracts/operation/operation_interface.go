@@ -14,6 +14,7 @@ type (
 
 	IOperation interface {
 		sync.Locker
+		Opcode() string
 		Id() (ID, ID)
 		Role() Role
 		SetRole(Role)

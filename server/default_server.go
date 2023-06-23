@@ -35,10 +35,18 @@ type defaultServer struct {
 	baseServer
 }
 
-func New(configuration IConfiguration, operationFactory IOperationFactory, handlerFactory IHttpHandlerFactory, opcodes Opcodes) (IServer, error) {
+func New(configuration IConfiguration, operationFactory IOperationFactory, handlerFactory IHttpHandlerFactory) (IServer, error) {
+	opcodes := make(Opcodes)
+	for _, operation := range operationFactory.Operations() {
+		requestId, resultId := operation.Id()
+		opcodes[requestId] = operation.Opcode()
+		opcodes[resultId] = operation.Opcode()
+	}
+
 	activePort, passivePort, diagnosticsPort := configuration.GetPorts()
 	hashKey := []byte(configuration.GetServerConfiguration().GetHashKey())
 	blockKey := []byte(configuration.GetServerConfiguration().GetBlockKey())
+
 	server := &defaultServer{
 		baseServer{
 			opcodes:                    opcodes,
@@ -77,10 +85,6 @@ func New(configuration IConfiguration, operationFactory IOperationFactory, handl
 		server.diagnosticsPort = rand.Intn(8999) + 1000
 	}
 
-	// server.getOperations()[api.ECHO] = api.NewEchoOperation()
-	// server.getOperations()[api.UPDATE] = api.NewUpdateOperation()
-	// server.getOperations()[api.LEGACY_UPDATE] = api.NewLegacyUpdateOperation()
-
 	if operationFactory != nil {
 		operations := operationFactory.Operations()
 		if len(operations) > 0 {
@@ -118,20 +122,10 @@ func (server *defaultServer) Start() {
 
 	// StartSingleThreadScheduledExecutor()
 
-	// https://fsymbols.com/generators/tarty/
-
 	if server.asciiArt != "" {
+		// https://fsymbols.com/generators/tarty/
 		fmt.Println(server.asciiArt)
-	} /* else {
-		fmt.Println("__  ____  __ ____")
-		fmt.Println("\\ \\/ |  \\/  / ___|")
-		fmt.Println(" \\  /| |\\/| \\___ \\")
-		fmt.Println(" /  \\| |  | |___) |")
-		fmt.Println("/_/\\_|_|  |_|____/")
-		fmt.Println("___________ 1.0.1")
-		fmt.Println("ONLINE")
-		fmt.Print("\n")
-	} */
+	}
 
 	for opcode, role := range server.securityHandler.AccessControlHandler().AccessControls() {
 		if operation, exists := server.operations[opcode]; exists {
