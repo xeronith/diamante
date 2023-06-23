@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -65,9 +66,26 @@ func (server *defaultServer) startPassiveServer() {
 			writer := CreateHttpWriter(server, context, server.secureCookie)
 			actor = CreateActor(writer, false, context.RealIP(), context.Request().UserAgent())
 			contentType := context.Request().Header.Get("Content-Type")
-			if contentType == "application/json" {
+
+			switch contentType {
+			case "application/json":
+				var body map[string]interface{}
+				if err := json.Unmarshal(message, &body); err != nil {
+					return echo.NewHTTPError(http.StatusBadRequest, "")
+				}
+
+				if _, exists := body["payload"]; exists {
+					payload, _ := json.Marshal(body["payload"])
+					body["payload"] = string(payload)
+					message, _ = json.Marshal(body)
+				}
+
+				fallthrough
+
+			case "text/plain":
 				result = server.OnActorTextData(actor, string(message))
-			} else {
+
+			default:
 				result = server.OnActorBinaryData(actor, message)
 			}
 

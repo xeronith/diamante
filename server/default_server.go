@@ -39,8 +39,8 @@ func New(configuration IConfiguration, operationFactory IOperationFactory, handl
 	opcodes := make(Opcodes)
 	for _, operation := range operationFactory.Operations() {
 		requestId, resultId := operation.Id()
-		opcodes[requestId] = operation.Opcode()
-		opcodes[resultId] = operation.Opcode()
+		opcodes[requestId] = operation.Tag()
+		opcodes[resultId] = operation.Tag()
 	}
 
 	activePort, passivePort, diagnosticsPort := configuration.GetPorts()

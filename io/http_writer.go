@@ -1,6 +1,7 @@
 package io
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -94,20 +95,17 @@ func (writer *httpWriter) Write(operation IOperationResult) {
 		return
 	}
 
+	serviceDuration := float64(operation.ExecutionDuration().Microseconds()) / 1000
+	pipelineDuration := float64(time.Since(writer.timestamp).Microseconds()) / 1000
+
+	writer.context.Response().Header().Add("X-Powered-By", "Magic")
+	writer.context.Response().Header().Add("X-Request-ID", fmt.Sprintf("%d", operation.Id()))
+	writer.context.Response().Header().Add("X-Response-Hash", operation.Hash())
+	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"0x%X\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", operation.Type(), pipelineDuration, serviceDuration))
+
 	switch result := operation.(type) {
 	case IBinaryOperationResult:
 		data, err := writer.base.binarySerializer.Serialize(result.Container())
-
-		action := writer.opcodes[result.Type()]
-		serviceDuration := float64(result.ExecutionDuration().Microseconds()) / 1000
-		pipelineDuration := float64(time.Since(writer.timestamp).Microseconds()) / 1000
-		serverVersion := result.ServerVersion()
-
-		writer.context.Response().Header().Add("X-Powered-By", "Magic")
-		writer.context.Response().Header().Add("X-Request-ID", fmt.Sprintf("%d", result.Id()))
-		writer.context.Response().Header().Add("X-Response-Hash", result.Hash())
-		writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("action;desc=\"%s\",version;desc=\"Build %d\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", action, serverVersion, pipelineDuration, serviceDuration))
-
 		if err == nil {
 			if err := writer.context.Blob(int(result.Status()), echo.MIMEOctetStream, data); err == nil {
 				writer.base.trafficRecorder.Record(BINARY_RESULT, data)
@@ -125,7 +123,13 @@ func (writer *httpWriter) Write(operation IOperationResult) {
 	case ITextOperationResult:
 		data, err := writer.base.textSerializer.Serialize(result.Container())
 		if err == nil {
-			if err := writer.context.String(int(result.Status()), data); err == nil {
+			var response, responsePayload map[string]interface{}
+			_ = json.Unmarshal([]byte(data), &response)
+			_ = json.Unmarshal([]byte(response["payload"].(string)), &responsePayload)
+			response["payload"] = responsePayload
+			data, _ := json.Marshal(response)
+
+			if err := writer.context.String(int(result.Status()), string(data)); err == nil {
 				writer.base.trafficRecorder.Record(TEXT_RESULT, data)
 			} else {
 				writer.base.logger.Error(fmt.Sprintf("HTTP/TOR WRITE ERROR: %s", err))
