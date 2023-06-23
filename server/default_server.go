@@ -120,8 +120,6 @@ func (server *defaultServer) Start() {
 		return
 	}
 
-	// StartSingleThreadScheduledExecutor()
-
 	if server.asciiArt != "" {
 		// https://fsymbols.com/generators/tarty/
 		fmt.Println(server.asciiArt)
