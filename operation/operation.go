@@ -9,7 +9,8 @@ import (
 
 type Operation struct {
 	sync.Mutex
-	role Role
+	role         Role
+	activeRunner int
 }
 
 func (operation *Operation) ExecutionTimeLimits() (Duration, Duration, Duration) {
@@ -26,4 +27,16 @@ func (operation *Operation) Role() Role {
 
 func (operation *Operation) SetRole(role Role) {
 	operation.role = role
+}
+
+func (operation *Operation) ActiveRunner() int {
+	if operation.activeRunner < 0 {
+		return 0
+	}
+
+	return operation.activeRunner
+}
+
+func (operation *Operation) SetActiveRunner(value int) {
+	operation.activeRunner = value
 }
