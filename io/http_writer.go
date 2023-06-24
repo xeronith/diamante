@@ -26,6 +26,10 @@ type httpWriter struct {
 
 func CreateHttpWriter(server IServer, context echo.Context, secureCookie *securecookie.SecureCookie) IWriter {
 	contentType := context.Request().Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
 	return &httpWriter{
 		base:         createBaseWriter(server, nil, contentType),
 		context:      context,
