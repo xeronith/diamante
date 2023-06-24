@@ -11,6 +11,7 @@ import (
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/scheduling"
 	. "github.com/xeronith/diamante/contracts/security"
+	. "github.com/xeronith/diamante/contracts/server"
 	. "github.com/xeronith/diamante/contracts/service"
 	. "github.com/xeronith/diamante/contracts/settings"
 	. "github.com/xeronith/diamante/contracts/system"
@@ -18,12 +19,13 @@ import (
 )
 
 type context struct {
-	resultType          ID
 	server              *baseServer
 	operation           IOperation
 	actor               IActor
+	pipeline            IPipeline
 	analyticsProvider   IAnalyticsProvider
 	requestId           uint64
+	resultType          ID
 	serverVersion       int32
 	apiVersion          int32
 	clientVersion       int32
@@ -32,23 +34,24 @@ type context struct {
 	timestamp           time.Time
 }
 
-func acquireContext(timestamp time.Time, server *baseServer, operation IOperation, actor IActor, requestId uint64, serverVersion, apiVersion, clientVersion, clientLatestVersion int32, clientName string, resultType ID) IContext {
-	context := new(context)
-
-	context.server = server
-	context.operation = operation
-	context.actor = actor
-	context.analyticsProvider = DefaultProvider
-	context.resultType = resultType
-	context.requestId = requestId
-	context.serverVersion = serverVersion
-	context.apiVersion = apiVersion
-	context.clientVersion = clientVersion
-	context.clientLatestVersion = clientLatestVersion
-	context.clientName = clientName
-	context.timestamp = timestamp
-
-	return context
+func (server *baseServer) acquireContext(
+	pipeline IPipeline,
+) IContext {
+	return &context{
+		timestamp:           time.Now(),
+		server:              server,
+		operation:           pipeline.Operation(),
+		actor:               pipeline.Actor(),
+		pipeline:            pipeline,
+		analyticsProvider:   DefaultProvider,
+		requestId:           pipeline.RequestId(),
+		resultType:          pipeline.ResultType(),
+		serverVersion:       pipeline.ServerVersion(),
+		apiVersion:          pipeline.ApiVersion(),
+		clientVersion:       pipeline.ClientVersion(),
+		clientLatestVersion: pipeline.ClientLatestVersion(),
+		clientName:          pipeline.ClientName(),
+	}
 }
 
 func (context *context) Configuration() IConfiguration {

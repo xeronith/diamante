@@ -11,9 +11,8 @@ func (server *baseServer) OnActorBinaryData(actor IActor, data []byte) IOperatio
 
 	request := server.binaryOperationRequestPool.Get().(IBinaryOperationRequest)
 	if err := server.binarySerializer.Deserialize(data, request.Container()); err != nil {
-		return server.serverError(0, BadRequest, err, false, request.ApiVersion(), server.Version(), request.ClientVersion())
+		return NewPipeline(server, actor, request).BadRequest()
 	} else {
-		actor.SetToken(request.Token())
 		return server.OnActorOperationRequest(actor, request)
 	}
 }
@@ -23,9 +22,8 @@ func (server *baseServer) OnActorTextData(actor IActor, data string) IOperationR
 
 	request := server.textOperationRequestPool.Get().(ITextOperationRequest)
 	if err := server.textSerializer.Deserialize(data, request.Container()); err != nil {
-		return server.serverError(0, BadRequest, err, true, request.ApiVersion(), server.Version(), request.ClientVersion())
+		return NewPipeline(server, actor, request).BadRequest()
 	} else {
-		actor.SetToken(request.Token())
 		return server.OnActorOperationRequest(actor, request)
 	}
 }

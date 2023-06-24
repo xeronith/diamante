@@ -1,260 +1,123 @@
 package server
 
 import (
-	"errors"
 	"fmt"
-	"time"
 
-	"github.com/go-faster/city"
 	. "github.com/xeronith/diamante/contracts/actor"
 	. "github.com/xeronith/diamante/contracts/analytics"
-	. "github.com/xeronith/diamante/contracts/messaging"
 	. "github.com/xeronith/diamante/contracts/operation"
-	. "github.com/xeronith/diamante/contracts/serialization"
-	. "github.com/xeronith/diamante/contracts/server"
-	. "github.com/xeronith/diamante/contracts/system"
 	"github.com/xeronith/diamante/operation/binary"
 	"github.com/xeronith/diamante/operation/text"
-	"github.com/xeronith/diamante/utility/reflection"
+	. "github.com/xeronith/diamante/utility/reflection"
 )
 
 func (server *baseServer) OnActorOperationRequest(actor IActor, request IOperationRequest) IOperationResult {
-	opCode := int64(request.Operation())
-	apiVersion := request.ApiVersion()
-	serverVersion := server.Version()
-	clientVersion := server.ResolveClientVersion(request.ClientName())
-	requestId := request.Id()
+	pipeline := NewPipeline(server, actor, request)
 
-	server.measurement("operations", Tags{"type": "r"}, Fields{"operation": opCode, "requestId": int64(requestId)})
-	defer func() {
-		server.measurement("operations", Tags{"type": "f"}, Fields{"operation": opCode, "requestId": int64(requestId)})
-	}()
-
-	var (
-		nonBinary  bool
-		serializer ISerializer
+	server.measurement(
+		"operations",
+		Tags{"type": "r"},
+		Fields{
+			"operation": int64(pipeline.Opcode()),
+			"requestId": int64(pipeline.RequestId()),
+		},
 	)
 
-	switch request.(type) {
-	case IBinaryOperationRequest:
-		nonBinary = false
-		serializer = server.binarySerializer
-	case ITextOperationRequest:
-		nonBinary = true
-		serializer = server.textSerializer
+	defer func() {
+		server.measurement(
+			"operations",
+			Tags{"type": "f"},
+			Fields{
+				"operation": int64(pipeline.Opcode()),
+				"requestId": int64(pipeline.RequestId()),
+			},
+		)
+	}()
+
+	if server.IsFrozen() && !pipeline.IsSystemCall() {
+		return pipeline.ServiceUnavailable()
 	}
 
-	operation := server.getOperations()[request.Operation()]
+	operation := pipeline.Operation()
 	if operation == nil {
-		return server.notImplemented(requestId, nil, nonBinary, apiVersion, serverVersion, clientVersion)
+		return pipeline.NotImplemented()
 	}
 
-	if err := server.authorize(actor, operation); err != nil {
-		return server.unauthorized(requestId, nil, nonBinary, apiVersion, serverVersion, clientVersion)
-	}
-
-	server.mutex.RLock()
-	frozen := server.frozen
-	server.mutex.RUnlock()
-
-	if frozen && opCode != 0x1000 {
-		return server.serviceUnavailable(requestId, nil, nonBinary, apiVersion, serverVersion, clientVersion)
+	if err := server.authorize(pipeline); err != nil {
+		return pipeline.Unauthorized()
 	}
 
 	container := operation.InputContainer()
-	if container == nil || !reflection.IsPointer(container) {
-		return server.internalServerError(requestId, errors.New("non_pointer_payload_container"), nonBinary, apiVersion, serverVersion, clientVersion)
+	if container == nil || !IsPointer(container) {
+		return pipeline.InternalServerError(NON_POINTER_PAYLOAD_CONTAINER)
 	}
 
 	var err error
-	if nonBinary {
-		err = serializer.(ITextSerializer).Deserialize(request.(ITextOperationRequest).Payload(), container)
+	if pipeline.IsBinary() {
+		err = server.binarySerializer.
+			Deserialize(request.(IBinaryOperationRequest).Payload(), container)
 	} else {
-		err = serializer.(IBinarySerializer).Deserialize(request.(IBinaryOperationRequest).Payload(), container)
+		err = server.textSerializer.
+			Deserialize(request.(ITextOperationRequest).Payload(), container)
 	}
 
 	if err != nil {
-		return server.internalServerError(requestId, err, nonBinary, apiVersion, serverVersion, clientVersion)
+		return pipeline.InternalServerError(err)
 	}
 
-	_, resultType := operation.Id()
-
-	timestamp := time.Now()
-	context := acquireContext(
-		timestamp,
-		server,
-		operation,
-		actor,
-		request.Id(),
-		serverVersion,
-		request.ApiVersion(),
-		request.ClientVersion(),
-		clientVersion,
-		request.ClientName(),
-		resultType,
-	)
-
-	output, duration, err := server.executeService(timestamp, operation, requestId, context, container)
-	contextResultType := context.ResultType()
+	context := server.acquireContext(pipeline)
+	output, duration, err := server.executeService(context, container, pipeline)
 
 	if err != nil {
-		return server.internalServerError(requestId, err, nonBinary, apiVersion, serverVersion, clientVersion)
+		return pipeline.InternalServerError(err)
 	}
 
-	if output == nil {
-		if //noinspection GoNilness
-		err == nil {
-			return server.internalServerError(requestId, errors.New("service_execution_failure"), nonBinary, apiVersion, serverVersion, clientVersion)
-		}
-
-		return server.internalServerError(requestId, errors.New("service_execution_failure: null"), nonBinary, apiVersion, serverVersion, clientVersion)
-	}
-
-	if !reflection.IsPointer(output) {
-		return server.internalServerError(requestId, errors.New("non_pointer_service_result"), nonBinary, apiVersion, serverVersion, clientVersion)
+	if output == nil || !IsPointer(output) {
+		return pipeline.InternalServerError(SERVICE_EXECUTION_FAILURE)
 	}
 
 	var result IOperationResult
-	if nonBinary {
-		resultPayload, err := serializer.(ITextSerializer).Serialize(output)
+	if pipeline.IsBinary() {
+		resultPayload, err := server.binarySerializer.Serialize(output)
 		if err != nil {
-			return server.internalServerError(requestId, err, nonBinary, apiVersion, serverVersion, clientVersion)
+			return pipeline.InternalServerError(err)
 		}
 
-		requestPayload := request.(ITextOperationRequest).Payload()
-		hash := fmt.Sprintf("%x-%x-%x", request.Operation(), city.Hash64([]byte(requestPayload)), city.Hash64([]byte(resultPayload)))
-		result = text.CreateTextOperationResult(requestId, OK, contextResultType, resultPayload, apiVersion, serverVersion, clientVersion, duration, hash)
+		result = binary.CreateBinaryOperationResult(
+			pipeline.RequestId(),
+			OK,
+			context.ResultType(),
+			resultPayload,
+			pipeline,
+			duration,
+			fmt.Sprintf(
+				"%x-%x-%x",
+				pipeline.Opcode(),
+				server.hash(request.(IBinaryOperationRequest).Payload()),
+				server.hash(resultPayload),
+			),
+		)
 	} else {
-		resultPayload, err := serializer.(IBinarySerializer).Serialize(output)
+		resultPayload, err := server.textSerializer.Serialize(output)
 		if err != nil {
-			return server.internalServerError(requestId, err, nonBinary, apiVersion, serverVersion, clientVersion)
+			return pipeline.InternalServerError(err)
 		}
 
-		requestPayload := request.(IBinaryOperationRequest).Payload()
-		hash := fmt.Sprintf("%x-%x-%x", request.Operation(), city.Hash64(requestPayload), city.Hash64(resultPayload))
-		result = binary.CreateBinaryOperationResult(requestId, OK, contextResultType, resultPayload, apiVersion, serverVersion, clientVersion, duration, hash)
+		result = text.CreateTextOperationResult(
+			pipeline.RequestId(),
+			OK,
+			context.ResultType(),
+			resultPayload,
+			pipeline,
+			duration,
+			fmt.Sprintf(
+				"%x-%x-%x",
+				pipeline.Opcode(),
+				server.hash(request.(ITextOperationRequest).Payload()),
+				server.hash(resultPayload),
+			),
+		)
 	}
 
 	return result
-}
-
-func (server *baseServer) BroadcastSpecific(resultType uint64, payloads map[string]Pointer) error {
-	if payloads == nil {
-		return errors.New("broadcast_failure: null_payload")
-	}
-
-	if len(payloads) < 1 {
-		return nil
-	}
-
-	data := make(map[string][]byte)
-	return server.connectedActors.ForEachParallelWithInitialization(
-		func(count int) error {
-			serializer := server.binarySerializer
-			for token, payload := range payloads {
-				// TODO: What if payload is nil?
-				serializedPayload, err := serializer.Serialize(payload)
-				if err != nil {
-					server.logger.Error(err)
-					return err
-				}
-
-				binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, serializedPayload, 0, 0, 0, 0, "")
-				serializedOperationResult, err := serializer.Serialize(binaryOperationResult.Container())
-				if err != nil {
-					server.logger.Error(err)
-					return err
-				}
-
-				data[token] = serializedOperationResult
-			}
-
-			return nil
-		}, func(object Pointer) {
-			actor := object.(IActor)
-			if actor.Writer().IsOpen() {
-				if _, exists := data[actor.Token()]; exists {
-					actor.Writer().WriteBytes(BINARY_RESULT, data[actor.Token()])
-				}
-			} else {
-				server.OnSocketDisconnected(actor)
-			}
-		})
-}
-
-func (server *baseServer) Push(actor IActor, message IPushMessage) error {
-	resultType := message.GetType()
-	payload := message.GetPayload()
-
-	if !reflection.IsPointer(payload) {
-		// TODO: What if payload is nil?
-		return errors.New("broadcast_failure: non_pointer_payload")
-	}
-
-	var (
-		err  error
-		data []byte
-	)
-
-	serializer := server.binarySerializer
-	data, err = serializer.Serialize(payload)
-	if err != nil {
-		server.logger.Error(err)
-		return err
-	}
-
-	binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, data, 0, 0, 0, 0, "")
-
-	if data, err = serializer.Serialize(binaryOperationResult.Container()); err != nil {
-		server.logger.Error(err)
-		return err
-	}
-
-	if actor.Writer().IsOpen() {
-		actor.Writer().WriteBytes(BINARY_RESULT, data)
-	} else {
-		server.OnSocketDisconnected(actor)
-	}
-
-	return nil
-}
-
-func (server *baseServer) Broadcast(resultType uint64, payload Pointer) error {
-	if !reflection.IsPointer(payload) {
-		// TODO: What if payload is nil?
-		return errors.New("broadcast_failure: non_pointer_payload")
-	}
-
-	var (
-		err  error
-		data []byte
-	)
-
-	return server.connectedActors.ForEachParallelWithInitialization(
-		func(count int) error {
-			// fmt.Printf("Broadcast to %d clients\n", count)
-			serializer := server.binarySerializer
-			data, err = serializer.Serialize(payload)
-			if err != nil {
-				server.logger.Error(err)
-				return err
-			}
-
-			binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, data, 0, 0, 0, 0, "")
-
-			if data, err = serializer.Serialize(binaryOperationResult.Container()); err != nil {
-				server.logger.Error(err)
-				return err
-			}
-
-			return nil
-		},
-		func(object Pointer) {
-			actor := object.(IActor)
-			if actor.Writer().IsOpen() {
-				actor.Writer().WriteBytes(BINARY_RESULT, data)
-			} else {
-				server.OnSocketDisconnected(actor)
-			}
-		})
 }

@@ -9,9 +9,12 @@ import (
 	. "github.com/xeronith/diamante/contracts/system"
 )
 
+const SYSTEM_CALL_REQUEST = 0x00001000
+
 type Opcodes map[uint64]string
 
 type IBaseServer interface {
+	IsFrozen() bool
 	Opcodes() Opcodes
 	ActorsCount() int
 	IncrementActorsCount(IActor)

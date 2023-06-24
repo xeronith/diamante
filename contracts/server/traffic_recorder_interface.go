@@ -1,6 +1,6 @@
 package server
 
-//noinspection GoSnakeCaseUsage
+// noinspection GoSnakeCaseUsage
 const (
 	BINARY_REQUEST = 0
 	TEXT_REQUEST   = 1

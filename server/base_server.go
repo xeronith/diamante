@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/go-faster/city"
 	"github.com/gorilla/securecookie"
 	. "github.com/xeronith/diamante/contracts/email"
 	. "github.com/xeronith/diamante/contracts/localization"
@@ -289,30 +290,30 @@ func (server *baseServer) RegisterHttpHandler(handler IHttpHandler) error {
 	handlerFunc := handler.HandlerFunc()
 
 	if path == "/" {
-		return errors.New("not allowed to register root path")
+		return errors.New("not_allowed_to_register_root_path")
 	}
 
 	if path == "/reports" {
-		return errors.New("not allowed to register reports path")
+		return errors.New("not_allowed_to_register_reports_path")
 	}
 
 	if path == "/mem" {
-		return errors.New("not allowed to register mem path")
+		return errors.New("not_allowed_to_register_mem_path")
 	}
 
 	if path == "/diagnostics" {
-		return errors.New("not allowed to diagnostics mem path")
+		return errors.New("not_allowed_to_diagnostics_mem_path")
 	}
 
 	if method != http.MethodGet && method != http.MethodPost {
-		return fmt.Errorf("method '%s' not allowed", method)
+		return fmt.Errorf("method_%s_not_allowed", method)
 	}
 
 	switch handler.Method() {
 	case http.MethodGet:
 		{
 			if _, pathExists := server.httpGetHandlers[path]; pathExists {
-				return fmt.Errorf("path GET '%s' already registered", path)
+				return fmt.Errorf("GET '%s' already_registered", path)
 			}
 
 			server.httpGetHandlers[path] = NewHttpHandler(path, method, handlerFunc)
@@ -321,7 +322,7 @@ func (server *baseServer) RegisterHttpHandler(handler IHttpHandler) error {
 	case http.MethodPost:
 		{
 			if _, pathExists := server.httpPostHandlers[path]; pathExists {
-				return fmt.Errorf("path POST '%s' already registered", path)
+				return fmt.Errorf("POST '%s' already_registered", path)
 			}
 
 			server.httpPostHandlers[path] = NewHttpHandler(path, method, handlerFunc)
@@ -353,12 +354,15 @@ func (server *baseServer) OnActorDisconnected(callback func(string)) {
 	server.onActorDisconnected = callback
 }
 
-func (server *baseServer) executeService(timestamp time.Time, operation IOperation, requestId uint64, context IContext, container Pointer) (Pointer, time.Duration, error) {
-	operationId, _ := operation.Id()
-	defer server.catch(operationId, requestId)
+func (server *baseServer) executeService(context IContext, container Pointer, pipeline IPipeline) (Pointer, time.Duration, error) {
+	operation := pipeline.Operation()
+	operationId := pipeline.Opcode()
+	requestId := pipeline.RequestId()
+
+	defer server.catch(operationId, pipeline.RequestId())
 
 	output, err := operation.Execute(context, container)
-	duration := server.analyzeOperationPerformance(operation, operationId, timestamp)
+	duration := server.analyzeOperationPerformance(operation, operationId, context.Timestamp())
 	server.measurement(
 		"operations",
 		Tags{"type": "x"},
@@ -376,7 +380,13 @@ func (server *baseServer) analyzeOperationPerformance(operation IOperation, oper
 	timeLimitWarning, timeLimitAlert, timeLimitCritical := operation.ExecutionTimeLimits()
 	delta := time.Since(timestamp)
 	if delta > timeLimitWarning {
-		message := fmt.Sprintf("SED 0x%.8X %016d %s", operationId, delta, server.opcodes[operationId])
+		message := fmt.Sprintf(
+			"SED 0x%.8X %016d %s",
+			operationId,
+			delta,
+			server.opcodes[operationId],
+		)
+
 		if delta > timeLimitCritical {
 			server.logger.Critical(message)
 		} else if delta > timeLimitAlert {
@@ -389,7 +399,9 @@ func (server *baseServer) analyzeOperationPerformance(operation IOperation, oper
 	return delta
 }
 
-func (server *baseServer) authorize(actor IActor, operation IOperation) error {
+func (server *baseServer) authorize(pipeline IPipeline) error {
+	operation := pipeline.Operation()
+	actor := pipeline.Actor()
 	role := operation.Role()
 
 	token := ""
@@ -403,12 +415,13 @@ func (server *baseServer) authorize(actor IActor, operation IOperation) error {
 
 	identity := server.getSecurityHandler().Authenticate(
 		token,
-		role, actor.RemoteAddress(),
+		role,
+		actor.RemoteAddress(),
 		actor.UserAgent(),
 	)
 
 	if identity == nil {
-		return errors.New("unauthorized")
+		return UNAUTHORIZED
 	}
 
 	actor.SetIdentity(identity)
@@ -419,7 +432,7 @@ func (server *baseServer) authorize(actor IActor, operation IOperation) error {
 
 func (server *baseServer) systemCall(identity Identity, args []string) error {
 	if len(args) < 1 {
-		return errors.New("empty command")
+		return errors.New("command_required")
 	}
 
 	switch args[0] {
@@ -435,27 +448,28 @@ func (server *baseServer) systemCall(identity Identity, args []string) error {
 	case "acl":
 		{
 			if len(args) < 3 {
-				return errors.New("invalid parameters")
+				return INVALID_PARAMETERS
 			}
 
 			opcode, err := strconv.ParseUint(args[1], 10, 64)
 			if err != nil {
-				return errors.New("invalid parameters")
+				return INVALID_PARAMETERS
 			}
 
-			if opcode == 0x00001000 /* SYSTEM_CALL_REQUEST */ {
-				return errors.New("invalid parameters")
+			if opcode == SYSTEM_CALL_REQUEST {
+				return INVALID_PARAMETERS
 			}
 
 			role, err := strconv.ParseUint(args[2], 10, 64)
 			if err != nil {
-				return errors.New("invalid parameters")
+				return INVALID_PARAMETERS
 			}
 
 			if operation, exists := server.operations[opcode]; !exists {
-				return errors.New("invalid parameters")
+				return INVALID_PARAMETERS
 			} else {
-				if err := server.securityHandler.AccessControlHandler().AddOrUpdateAccessControl(opcode, role, identity); err != nil {
+				if err := server.securityHandler.AccessControlHandler().
+					AddOrUpdateAccessControl(opcode, role, identity); err != nil {
 					return err
 				}
 
@@ -465,8 +479,15 @@ func (server *baseServer) systemCall(identity Identity, args []string) error {
 		}
 
 	default:
-		return errors.New("syscall: command not found: " + args[0])
+		return errors.New("syscall: command_not_found " + args[0])
 	}
+}
+
+func (server *baseServer) IsFrozen() bool {
+	server.mutex.RLock()
+	defer server.mutex.RUnlock()
+
+	return server.frozen
 }
 
 func (server *baseServer) measurement(key string, tags Tags, fields Fields) {
@@ -477,9 +498,35 @@ func (server *baseServer) measurement(key string, tags Tags, fields Fields) {
 	server.measurementsProvider.SubmitMeasurement(key, tags, fields)
 }
 
+func (server *baseServer) hash(payload interface{}) uint64 {
+	switch data := payload.(type) {
+	case []byte:
+		return city.Hash64(data)
+	case string:
+		return city.Hash64([]byte(data))
+	default:
+		return 0
+	}
+}
+
 func (server *baseServer) catch(operationId uint64, requestId uint64) {
 	if reason := recover(); reason != nil {
-		server.logger.Panic(fmt.Sprintf("OPR 0x%.8X %s\n%s", operationId, reason, debug.Stack()))
-		server.measurement("operations", Tags{"type": "p"}, Fields{"operation": int64(operationId), "requestId": int64(requestId)})
+		server.logger.Panic(
+			fmt.Sprintf(
+				"OPR 0x%.8X %s\n%s",
+				operationId,
+				reason,
+				debug.Stack(),
+			),
+		)
+
+		server.measurement(
+			"operations",
+			Tags{"type": "p"},
+			Fields{
+				"operation": int64(operationId),
+				"requestId": int64(requestId),
+			},
+		)
 	}
 }

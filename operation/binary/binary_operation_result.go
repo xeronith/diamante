@@ -5,6 +5,7 @@ import (
 
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/serialization"
+	. "github.com/xeronith/diamante/contracts/server"
 	. "github.com/xeronith/diamante/contracts/system"
 	"github.com/xeronith/diamante/protobuf"
 )
@@ -18,16 +19,24 @@ func NewBinaryOperationResult() IBinaryOperationResult {
 	return &binaryOperationResult{}
 }
 
-func CreateBinaryOperationResult(id uint64, status int32, _type uint64, payload []byte, apiVersion, serverVersion, clientVersion int32, duration time.Duration, hash string) IBinaryOperationResult {
+func CreateBinaryOperationResult(
+	id ID,
+	status int32,
+	resultType uint64,
+	payload []byte,
+	pipelineInfo IPipeline,
+	duration time.Duration,
+	hash string,
+) IBinaryOperationResult {
 	return &binaryOperationResult{
 		container: protobuf.BinaryOperationResult{
 			Id:            id,
 			Status:        status,
-			Type:          _type,
+			Type:          resultType,
 			Payload:       payload,
-			ApiVersion:    apiVersion,
-			ServerVersion: serverVersion,
-			ClientVersion: clientVersion,
+			ApiVersion:    pipelineInfo.ApiVersion(),
+			ServerVersion: pipelineInfo.ServerVersion(),
+			ClientVersion: pipelineInfo.ClientVersion(),
 			Hash:          hash,
 		},
 		duration: duration,

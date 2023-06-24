@@ -9,7 +9,6 @@ import (
 
 func (server *defaultServer) createTLSListener(listener net.Listener) net.Listener {
 	tlsConfiguration := server.Configuration().GetServerConfiguration().GetTLSConfiguration()
-
 	if !tlsConfiguration.IsEnabled() {
 		server.Logger().Warning(fmt.Sprintf("WARNING: SSL certificate or key not provided. TLS disabled for: %s", listener.Addr()))
 		return listener
@@ -17,12 +16,7 @@ func (server *defaultServer) createTLSListener(listener net.Listener) net.Listen
 
 	config := new(tls.Config)
 	config.MinVersion = tls.VersionTLS10
-	// config.SessionTicketsDisabled = true
-	config.PreferServerCipherSuites = true
 	config.NextProtos = append(config.NextProtos, "h2")
-	/*config.CipherSuites = []uint16{
-		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-	}*/
 
 	certFile := tlsConfiguration.GetCertFile()
 	keyFile := tlsConfiguration.GetKeyFile()
@@ -33,6 +27,5 @@ func (server *defaultServer) createTLSListener(listener net.Listener) net.Listen
 		log.Fatal(err)
 	}
 
-	config.BuildNameToCertificate()
 	return tls.NewListener(listener, config)
 }

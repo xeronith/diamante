@@ -1,102 +1,93 @@
 package server
 
 import (
-	"fmt"
-	"strings"
-
 	"errors"
 
 	. "github.com/xeronith/diamante/contracts/operation"
-	"github.com/xeronith/diamante/contracts/server"
 	"github.com/xeronith/diamante/operation/binary"
 	"github.com/xeronith/diamante/operation/text"
 	"github.com/xeronith/diamante/protobuf"
 )
 
-func (server *baseServer) createServerError(developmentEnvironment bool, status int32, err error) server.IServerError {
-	var (
-		message     = ""
-		description = ""
-	)
+var (
+	INVALID_PARAMETERS                            = errors.New("invalid parameters")
+	NON_POINTER_PAYLOAD_CONTAINER                 = errors.New("non_pointer_payload_container")
+	SERVICE_EXECUTION_FAILURE                     = errors.New("service_execution_failure")
+	SERVICE_UNAVAILABLE_DUE_TO_SYSTEM_MAINTENANCE = errors.New("system_maintenance")
+	NOT_IMPLEMENTED                               = errors.New("not_implemented")
+	INTERNAL_SERVER_ERROR                         = errors.New("internal_server_error")
+	UNAUTHORIZED                                  = errors.New("unauthorized")
+	BAD_REQUEST                                   = errors.New("bad_request")
+)
 
-	if err != nil {
-		message = err.Error()
+func (pipeline *pipeline) ServiceUnavailable(errors ...error) IOperationResult {
+	err := SERVICE_UNAVAILABLE_DUE_TO_SYSTEM_MAINTENANCE
+	if len(errors) > 0 {
+		err = errors[0]
 	}
 
-	description = server.localizer.Get(message)
-
-	pattern := "Data too long for column '"
-	index := strings.Index(message, pattern)
-	if description == "" && index >= 0 {
-		description = message[index+len(pattern):]
-		index = strings.Index(description, "' at")
-		if index >= 0 {
-			description = description[:index]
-		}
-
-		description = fmt.Sprintf("%s_too_long", description)
-		message = fmt.Sprintf("ERROR_MESSAGE_%s", strings.ToUpper(description))
-	}
-
-	return &protobuf.ServerError{
-		Message:     message,
-		Description: description,
-	}
+	return pipeline.serverError(ServiceUnavailable, err)
 }
 
-func (server *baseServer) serverError(id uint64, status int32, _error error, nonBinary bool, apiVersion, serverVersion, clientVersion int32) IOperationResult {
-	serverError := server.createServerError(server.Configuration().IsDevelopmentEnvironment(), status, _error)
+func (pipeline *pipeline) NotImplemented(errors ...error) IOperationResult {
+	err := NOT_IMPLEMENTED
+	if len(errors) > 0 {
+		err = errors[0]
+	}
+
+	return pipeline.serverError(NotImplemented, err)
+}
+
+func (pipeline *pipeline) InternalServerError(errors ...error) IOperationResult {
+	err := INTERNAL_SERVER_ERROR
+	if len(errors) > 0 {
+		err = errors[0]
+	}
+
+	return pipeline.serverError(InternalServerError, err)
+}
+
+func (pipeline *pipeline) Unauthorized(errors ...error) IOperationResult {
+	err := UNAUTHORIZED
+	if len(errors) > 0 {
+		err = errors[0]
+	}
+
+	return pipeline.serverError(Unauthorized, err)
+}
+
+func (pipeline *pipeline) BadRequest(errors ...error) IOperationResult {
+	err := BAD_REQUEST
+	if len(errors) > 0 {
+		err = errors[0]
+	}
+
+	return pipeline.serverError(BadRequest, err)
+}
+
+func (pipeline *pipeline) serverError(status int32, err error) IOperationResult {
+	serverError := &protobuf.ServerError{}
+	if err != nil {
+		serverError.Message = err.Error()
+		serverError.Description = pipeline.localizer.Get(serverError.Message)
+	}
 
 	var result IOperationResult
-	if nonBinary {
-		data, err := server.textSerializer.Serialize(serverError)
-		var factory = text.CreateTextOperationResult
-		if err != nil {
-			result = factory(id, InternalServerError, ERROR, "", apiVersion, serverVersion, clientVersion, 0, "")
+	if pipeline.IsBinary() {
+		var factory = binary.CreateBinaryOperationResult
+		if data, serializationErr := pipeline.binarySerializer.Serialize(serverError); serializationErr != nil {
+			result = factory(pipeline.RequestId(), InternalServerError, ERROR, nil, pipeline, 0, "")
 		} else {
-			result = factory(id, status, ERROR, data, apiVersion, serverVersion, clientVersion, 0, "")
+			result = factory(pipeline.RequestId(), status, ERROR, data, pipeline, 0, "")
 		}
 	} else {
-		data, err := server.binarySerializer.Serialize(serverError)
-		var factory = binary.CreateBinaryOperationResult
-		if err != nil {
-			result = factory(id, InternalServerError, ERROR, nil, apiVersion, serverVersion, clientVersion, 0, "")
+		var factory = text.CreateTextOperationResult
+		if data, serializationErr := pipeline.textSerializer.Serialize(serverError); serializationErr != nil {
+			result = factory(pipeline.RequestId(), InternalServerError, ERROR, "", pipeline, 0, "")
 		} else {
-			result = factory(id, status, ERROR, data, apiVersion, serverVersion, clientVersion, 0, "")
+			result = factory(pipeline.RequestId(), status, ERROR, data, pipeline, 0, "")
 		}
 	}
 
 	return result
-}
-
-func (server *baseServer) internalServerError(id uint64, _error error, nonBinary bool, apiVersion, serverVersion, clientVersion int32) IOperationResult {
-	if _error == nil {
-		return server.serverError(id, InternalServerError, errors.New("internal server error"), nonBinary, apiVersion, serverVersion, clientVersion)
-	} else {
-		return server.serverError(id, InternalServerError, _error, nonBinary, apiVersion, serverVersion, clientVersion)
-	}
-}
-
-func (server *baseServer) unauthorized(id uint64, _error error, nonBinary bool, apiVersion, serverVersion, clientVersion int32) IOperationResult {
-	if _error == nil {
-		return server.serverError(id, Unauthorized, errors.New("unauthorized"), nonBinary, apiVersion, serverVersion, clientVersion)
-	} else {
-		return server.serverError(id, Unauthorized, _error, nonBinary, apiVersion, serverVersion, clientVersion)
-	}
-}
-
-func (server *baseServer) notImplemented(id uint64, _error error, nonBinary bool, apiVersion, serverVersion, clientVersion int32) IOperationResult {
-	if _error == nil {
-		return server.serverError(id, NotImplemented, errors.New("not implemented"), nonBinary, apiVersion, serverVersion, clientVersion)
-	} else {
-		return server.serverError(id, NotImplemented, _error, nonBinary, apiVersion, serverVersion, clientVersion)
-	}
-}
-
-func (server *baseServer) serviceUnavailable(id uint64, _error error, nonBinary bool, apiVersion, serverVersion, clientVersion int32) IOperationResult {
-	if _error == nil {
-		return server.serverError(id, ServiceUnavailable, errors.New("service unavailable due to system maintenance"), nonBinary, apiVersion, serverVersion, clientVersion)
-	} else {
-		return server.serverError(id, ServiceUnavailable, _error, nonBinary, apiVersion, serverVersion, clientVersion)
-	}
 }

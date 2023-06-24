@@ -205,51 +205,48 @@ func (recorder *trafficRecorder) Replay(server IServer, speed float32) error {
 	fmt.Println("\n\nSERVER TRAFFIC REPLAY")
 	fmt.Println("──────────────────────────────────────")
 
-	for {
-		select {
-		case <-ticker.C:
-			for index := 0; index < size; index++ {
-				entry := recorder.entries[index]
-				timestamp := entry.timestamp / 1000000
+	for range ticker.C {
+		for index := 0; index < size; index++ {
+			entry := recorder.entries[index]
+			timestamp := entry.timestamp / 1000000
 
-				if timestamp == offset {
-					switch entry.dataType {
-					//---------------------------------------------------------------------------------------------------
-					case BINARY_REQUEST:
-						fmt.Printf("▒▒ BO/I ▒▒ %08X %d % X\n", index+1, entry.timestamp, entry.data)
-						actor := CreateActor(nil, false, "", "")
-						actor.SetToken(entry.token)
-						server.OnActorBinaryData(actor, entry.data)
-					case BINARY_RESULT:
-						fmt.Printf("▒▒ BO/O ▒▒ %08X %d % X\n", index+1, entry.timestamp, entry.data)
-					//---------------------------------------------------------------------------------------------------
-					case TEXT_REQUEST:
-						fmt.Printf("▓▓ TO/I ▓▓ %08X %d % X\n", index+1, entry.timestamp, entry.data)
-						actor := CreateActor(nil, false, "", "")
-						actor.SetToken(entry.token)
-						server.OnActorTextData(actor, string(entry.data))
-					case TEXT_RESULT:
-						fmt.Printf("▓▓ TO/O ▓▓ %08X %d % X\n", index+1, entry.timestamp, entry.data)
-					}
-					//---------------------------------------------------------------------------------------------------
-					if index == size-1 {
-						fmt.Printf("──────────────────────────────────────\nTOTAL OPERATIONS: %d\n\n\n\n", size)
-						ticker.Stop()
-						return nil
-					}
+			if timestamp == offset {
+				switch entry.dataType {
+				//---------------------------------------------------------------------------------------------------
+				case BINARY_REQUEST:
+					fmt.Printf("▒▒ BO/I ▒▒ %08X %d % X\n", index+1, entry.timestamp, entry.data)
+					actor := CreateActor(nil, false, "", "")
+					actor.SetToken(entry.token)
+					server.OnActorBinaryData(actor, entry.data)
+				case BINARY_RESULT:
+					fmt.Printf("▒▒ BO/O ▒▒ %08X %d % X\n", index+1, entry.timestamp, entry.data)
+				//---------------------------------------------------------------------------------------------------
+				case TEXT_REQUEST:
+					fmt.Printf("▓▓ TO/I ▓▓ %08X %d % X\n", index+1, entry.timestamp, entry.data)
+					actor := CreateActor(nil, false, "", "")
+					actor.SetToken(entry.token)
+					server.OnActorTextData(actor, string(entry.data))
+				case TEXT_RESULT:
+					fmt.Printf("▓▓ TO/O ▓▓ %08X %d % X\n", index+1, entry.timestamp, entry.data)
+				}
+				//---------------------------------------------------------------------------------------------------
+				if index == size-1 {
+					fmt.Printf("──────────────────────────────────────\nTOTAL OPERATIONS: %d\n\n\n\n", size)
+					ticker.Stop()
 				}
 			}
-
-			offset++
 		}
+
+		offset++
 	}
+
+	return nil
 }
 
 func (recorder *trafficRecorder) writeUInt64(file *File, value uint64) {
 	buffer := make([]byte, 8)
 	binary.BigEndian.PutUint64(buffer, value)
-	_, err := file.Write(buffer)
-	if err != nil {
+	if _, err := file.Write(buffer); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -257,8 +254,7 @@ func (recorder *trafficRecorder) writeUInt64(file *File, value uint64) {
 func (recorder *trafficRecorder) writeUInt32(file *File, value uint32) {
 	buffer := make([]byte, 4)
 	binary.BigEndian.PutUint32(buffer, value)
-	_, err := file.Write(buffer)
-	if err != nil {
+	if _, err := file.Write(buffer); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -266,8 +262,7 @@ func (recorder *trafficRecorder) writeUInt32(file *File, value uint32) {
 func (recorder *trafficRecorder) writeString(file *File, value string) {
 	length := uint32(len(value))
 	recorder.writeUInt32(file, length)
-	_, err := file.Write([]byte(value))
-	if err != nil {
+	if _, err := file.Write([]byte(value)); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -275,8 +270,7 @@ func (recorder *trafficRecorder) writeString(file *File, value string) {
 func (recorder *trafficRecorder) writeByteArray(file *File, buffer []byte) {
 	length := uint32(len(buffer))
 	recorder.writeUInt32(file, length)
-	_, err := file.Write(buffer)
-	if err != nil {
+	if _, err := file.Write(buffer); err != nil {
 		fmt.Println(err)
 	}
 }
