@@ -119,7 +119,7 @@ func (pipeline *pipeline) IsSystemCall() bool {
 }
 
 func (pipeline *pipeline) Hash(payload []byte) string {
-	if payload == nil || pipeline.request.Payload() == nil {
+	if payload == nil || pipeline.request == nil {
 		return ""
 	}
 
