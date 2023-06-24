@@ -5,9 +5,8 @@ import (
 
 	. "github.com/xeronith/diamante/contracts/actor"
 	. "github.com/xeronith/diamante/contracts/messaging"
-	. "github.com/xeronith/diamante/contracts/server"
 	. "github.com/xeronith/diamante/contracts/system"
-	"github.com/xeronith/diamante/operation/binary"
+	. "github.com/xeronith/diamante/operation"
 	"github.com/xeronith/diamante/utility/reflection"
 )
 
@@ -18,23 +17,23 @@ func (server *baseServer) Broadcast(resultType uint64, payload Pointer) error {
 	}
 
 	var (
-		err  error
-		data []byte
+		err               error
+		serializedPayload []byte
 	)
 
 	return server.connectedActors.ForEachParallelWithInitialization(
 		func(count int) error {
 			// fmt.Printf("Broadcast to %d clients\n", count)
-			serializer := server.binarySerializer
-			data, err = serializer.Serialize(payload)
+			serializer := server.serializers["application/octet-stream"]
+			serializedPayload, err = serializer.Serialize(payload)
 			if err != nil {
 				server.logger.Error(err)
 				return err
 			}
 
-			binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, data, NO_PIPELINE_INFO, 0, "")
+			operationResult := CreateOperationResult(BROADCAST, OK, resultType, serializedPayload, NO_PIPELINE_INFO, 0)
 
-			if data, err = serializer.Serialize(binaryOperationResult.Container()); err != nil {
+			if serializedPayload, err = serializer.Serialize(operationResult.Container()); err != nil {
 				server.logger.Error(err)
 				return err
 			}
@@ -44,7 +43,7 @@ func (server *baseServer) Broadcast(resultType uint64, payload Pointer) error {
 		func(object Pointer) {
 			actor := object.(IActor)
 			if actor.Writer().IsOpen() {
-				actor.Writer().WriteBytes(BINARY_RESULT, data)
+				actor.Writer().WriteBytes(serializedPayload)
 			} else {
 				server.OnSocketDisconnected(actor)
 			}
@@ -63,7 +62,7 @@ func (server *baseServer) BroadcastSpecific(resultType uint64, payloads map[stri
 	data := make(map[string][]byte)
 	return server.connectedActors.ForEachParallelWithInitialization(
 		func(count int) error {
-			serializer := server.binarySerializer
+			serializer := server.serializers["application/octet-stream"]
 			for token, payload := range payloads {
 				// TODO: What if payload is nil?
 				serializedPayload, err := serializer.Serialize(payload)
@@ -72,8 +71,8 @@ func (server *baseServer) BroadcastSpecific(resultType uint64, payloads map[stri
 					return err
 				}
 
-				binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, serializedPayload, NO_PIPELINE_INFO, 0, "")
-				serializedOperationResult, err := serializer.Serialize(binaryOperationResult.Container())
+				operationResult := CreateOperationResult(BROADCAST, OK, resultType, serializedPayload, NO_PIPELINE_INFO, 0)
+				serializedOperationResult, err := serializer.Serialize(operationResult.Container())
 				if err != nil {
 					server.logger.Error(err)
 					return err
@@ -87,7 +86,7 @@ func (server *baseServer) BroadcastSpecific(resultType uint64, payloads map[stri
 			actor := object.(IActor)
 			if actor.Writer().IsOpen() {
 				if _, exists := data[actor.Token()]; exists {
-					actor.Writer().WriteBytes(BINARY_RESULT, data[actor.Token()])
+					actor.Writer().WriteBytes(data[actor.Token()])
 				}
 			} else {
 				server.OnSocketDisconnected(actor)
@@ -105,26 +104,25 @@ func (server *baseServer) Push(actor IActor, message IPushMessage) error {
 	}
 
 	var (
-		err  error
-		data []byte
+		err               error
+		serializedPayload []byte
 	)
 
-	serializer := server.binarySerializer
-	data, err = serializer.Serialize(payload)
+	serializer := server.serializers["application/octet-stream"]
+	serializedPayload, err = serializer.Serialize(payload)
 	if err != nil {
 		server.logger.Error(err)
 		return err
 	}
 
-	binaryOperationResult := binary.CreateBinaryOperationResult(BROADCAST, OK, resultType, data, NO_PIPELINE_INFO, 0, "")
-
-	if data, err = serializer.Serialize(binaryOperationResult.Container()); err != nil {
+	operationResult := CreateOperationResult(BROADCAST, OK, resultType, serializedPayload, NO_PIPELINE_INFO, 0)
+	if serializedPayload, err = serializer.Serialize(operationResult.Container()); err != nil {
 		server.logger.Error(err)
 		return err
 	}
 
 	if actor.Writer().IsOpen() {
-		actor.Writer().WriteBytes(BINARY_RESULT, data)
+		actor.Writer().WriteBytes(serializedPayload)
 	} else {
 		server.OnSocketDisconnected(actor)
 	}

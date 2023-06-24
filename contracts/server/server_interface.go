@@ -4,6 +4,7 @@ import (
 	. "github.com/xeronith/diamante/contracts/actor"
 	. "github.com/xeronith/diamante/contracts/analytics"
 	. "github.com/xeronith/diamante/contracts/email"
+	. "github.com/xeronith/diamante/contracts/io"
 	. "github.com/xeronith/diamante/contracts/network/http"
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/security"
@@ -33,10 +34,8 @@ type IServer interface {
 	ActiveEndpoint() string
 	PassiveEndpoint() string
 
-	TextSerializer() ITextSerializer
-	BinarySerializer() IBinarySerializer
-
-	TrafficRecorder() ITrafficRecorder
+	Serializers() map[string]ISerializer
+	Serializer(IWriter) ISerializer
 
 	MeasurementsProvider() IMeasurementsProvider
 	SetMeasurementsProvider(IMeasurementsProvider)
@@ -51,9 +50,8 @@ type IServer interface {
 	Session(string) (ISystemObject, error)
 	SetSession(string, ISystemObject) error
 
-	OnActorBinaryData(IActor, []byte) IOperationResult
-	OnActorTextData(IActor, string) IOperationResult
-	OnActorOperationRequest(IActor, IOperationRequest) IOperationResult
+	OnData(IActor, []byte) IOperationResult
+	OnOperationRequest(IPipeline, IOperationRequest) IOperationResult
 
 	OnSocketConnected(IActor)
 	OnSocketDisconnected(IActor)

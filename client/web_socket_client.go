@@ -13,9 +13,9 @@ import (
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/serialization"
 	. "github.com/xeronith/diamante/contracts/system"
-	"github.com/xeronith/diamante/operation/binary"
-	"github.com/xeronith/diamante/server"
-	"github.com/xeronith/diamante/utility/reflection"
+	. "github.com/xeronith/diamante/operation"
+	. "github.com/xeronith/diamante/serialization"
+	. "github.com/xeronith/diamante/utility/reflection"
 )
 
 type webSocketClient struct {
@@ -30,21 +30,21 @@ func NewWebSocketClient() IClient {
 	}
 }
 
-func CreateWebSocketClient(listener func(IBinaryOperationResult)) IClient {
+func CreateWebSocketClient(listener func(IOperationResult)) IClient {
 	return &webSocketClient{
 		base: baseClient{
-			binaryOperationResultListener: listener,
+			operationResultListener: listener,
 		},
 	}
 }
 
 // noinspection GoUnusedExportedFunction
-func CreateDistinctWebSocketClient(version int32, name string, listener func(IBinaryOperationResult)) IClient {
+func CreateDistinctWebSocketClient(version int32, name string, listener func(IOperationResult)) IClient {
 	return &webSocketClient{
 		base: baseClient{
-			name:                          name,
-			version:                       version,
-			binaryOperationResultListener: listener,
+			name:                    name,
+			version:                 version,
+			operationResultListener: listener,
 		},
 	}
 }
@@ -69,12 +69,12 @@ func (client *webSocketClient) SetApiVersion(apiVersion int32) {
 	client.base.apiVersion = apiVersion
 }
 
-func (client *webSocketClient) BinarySerializer() IBinarySerializer {
-	return client.base.binarySerializer
+func (client *webSocketClient) Serializer() ISerializer {
+	return client.base.serializer
 }
 
-func (client *webSocketClient) SetBinaryOperationResultListener(listener func(IBinaryOperationResult)) {
-	client.base.binaryOperationResultListener = listener
+func (client *webSocketClient) SetOperationResultListener(listener func(IOperationResult)) {
+	client.base.operationResultListener = listener
 }
 
 func (client *webSocketClient) OnConnectionEstablished(callback func(IClient)) {
@@ -94,7 +94,7 @@ func (fakeSessionCache) Put(sessionKey string, cs *tls.ClientSessionState) {
 func (client *webSocketClient) Connect(endpoint string, token string) error {
 	client.base.token = token
 	client.base.endpoint = endpoint
-	client.base.binarySerializer = server.DefaultBinarySerializer
+	client.base.serializer = NewProtobufSerializer()
 
 	var (
 		err     error
@@ -133,8 +133,6 @@ func (client *webSocketClient) Connect(endpoint string, token string) error {
 					if client.base.endpoint != "" {
 						log.Println("CLIENT CONTROL ERROR: ", err)
 					}
-
-					break
 				}
 			}
 		}
@@ -152,13 +150,13 @@ func (client *webSocketClient) Connect(endpoint string, token string) error {
 				return
 			}
 
-			if client.base.binaryOperationResultListener != nil {
-				operationResult := binary.NewBinaryOperationResult()
-				err = client.base.binarySerializer.Deserialize(message, operationResult.Container())
+			if client.base.operationResultListener != nil {
+				operationResult := NewOperationResult()
+				err = client.base.serializer.Deserialize(message, operationResult.Container())
 				if err != nil {
 					log.Println("SOCKET DATA DESERIALIZATION ERROR: ", err)
 				} else {
-					client.base.binaryOperationResultListener(operationResult)
+					client.base.operationResultListener(operationResult)
 				}
 			}
 		}
@@ -172,7 +170,7 @@ func (client *webSocketClient) Connect(endpoint string, token string) error {
 }
 
 func (client *webSocketClient) Send(id uint64, operation uint64, payload Pointer) error {
-	if !reflection.IsPointer(payload) {
+	if !IsPointer(payload) {
 		return errors.New("payload should be a pointer")
 	}
 
@@ -181,12 +179,12 @@ func (client *webSocketClient) Send(id uint64, operation uint64, payload Pointer
 		err  error
 	)
 
-	binaryOperationRequest := binary.CreateBinaryOperationRequest(id, operation, client.base.name, client.base.version, client.base.apiVersion, client.base.token, nil)
-	if err := binaryOperationRequest.Load(payload, client.base.binarySerializer); err != nil {
+	operationRequest := CreateOperationRequest(id, operation, client.base.name, client.base.version, client.base.apiVersion, client.base.token, nil)
+	if err := operationRequest.Load(payload, client.base.serializer); err != nil {
 		return err
 	}
 
-	data, err = client.base.binarySerializer.Serialize(binaryOperationRequest.Container())
+	data, err = client.base.serializer.Serialize(operationRequest.Container())
 	if err != nil {
 		return err
 	}

@@ -20,9 +20,13 @@ type webSocketWriter struct {
 
 func CreateWebSocketWriter(server IServer, connection *Conn, onClosed func()) IWriter {
 	return &webSocketWriter{
-		base:       createBaseWriter(server, onClosed),
+		base:       createBaseWriter(server, onClosed, "application/octet-stream"),
 		connection: connection,
 	}
+}
+
+func (writer *webSocketWriter) ContentType() string {
+	return writer.base.contentType
 }
 
 func (writer *webSocketWriter) IsClosed() bool {
@@ -58,30 +62,17 @@ func (writer *webSocketWriter) SetToken(token string) {
 	writer.base.token = token
 }
 
-func (writer *webSocketWriter) Write(operation IOperationResult) {
+func (writer *webSocketWriter) Write(result IOperationResult) {
 	defer writer.catch()
 
-	switch result := operation.(type) {
-	case IBinaryOperationResult:
-		if data, err := writer.base.binarySerializer.Serialize(result.Container()); err == nil {
-			writer.WriteBytes(BINARY_RESULT, data)
-		} else {
-			//TODO: Handle the error
-			writer.base.logger.Error(fmt.Sprintf("SOCKET/BOR SERIALIZATION ERROR {%s}: %s", writer.base.token, err))
-		}
-	case ITextOperationResult:
-		if data, err := writer.base.textSerializer.Serialize(result.Container()); err == nil {
-			writer.WriteBytes(TEXT_RESULT, []byte(data))
-		} else {
-			//TODO: Handle the error
-			writer.base.logger.Error(fmt.Sprintf("SOCKET/TOR SERIALIZATION ERROR {%s}: %s", writer.base.token, err))
-		}
-	default:
-		writer.base.logger.Error("SOCKET WRITE ERROR: not supported")
+	if data, err := writer.base.serializer.Serialize(result.Container()); err != nil {
+		writer.base.logger.Error(fmt.Sprintf("SOCKET/OR SERIALIZATION ERROR {%s}: %s", writer.base.token, err))
+	} else {
+		writer.WriteBytes(data)
 	}
 }
 
-func (writer *webSocketWriter) WriteBytes(_type int, data []byte) {
+func (writer *webSocketWriter) WriteBytes(data []byte) {
 	start := time.Now()
 	defer func() {
 		duration := time.Since(start)
@@ -109,25 +100,10 @@ func (writer *webSocketWriter) WriteBytes(_type int, data []byte) {
 			return
 		}
 
-		switch _type {
-		case BINARY_RESULT:
-			if err := writer.connection.WriteMessage(BinaryMessage, data); err == nil {
-				writer.base.trafficRecorder.Record(BINARY_RESULT, data)
-			} else {
-				closed = true
-				writer.base.closed = true
-				writer.base.logger.Error(fmt.Sprintf("SOCKET/BOR WRITE ERROR {%s}: %s", writer.base.token, err))
-			}
-		case TEXT_RESULT:
-			if err := writer.connection.WriteMessage(TextMessage, data); err == nil {
-				writer.base.trafficRecorder.Record(TEXT_RESULT, string(data))
-			} else {
-				closed = true
-				writer.base.closed = true
-				writer.base.logger.Error(fmt.Sprintf("SOCKET/TOR WRITE ERROR {%s}: %s", writer.base.token, err))
-			}
-		default:
-			writer.base.logger.Error("SOCKET WRITE ERROR: not supported")
+		if err := writer.connection.WriteMessage(BinaryMessage, data); err != nil {
+			closed = true
+			writer.base.closed = true
+			writer.base.logger.Error(fmt.Sprintf("SOCKET/OR WRITE ERROR {%s}: %s", writer.base.token, err))
 		}
 	}()
 
@@ -147,9 +123,7 @@ func (writer *webSocketWriter) WriteByte(code byte) error {
 		return nil
 	}
 
-	if err := writer.connection.WriteMessage(BinaryMessage, []byte{code}); err == nil {
-		//TODO: writer.base.trafficRecorder.Record(SIGNAL, code)
-	} else {
+	if err := writer.connection.WriteMessage(BinaryMessage, []byte{code}); err != nil {
 		writer.base.closed = true
 		writer.base.logger.Error(fmt.Sprintf("SOCKET/SIG WRITE ERROR: %s", err))
 	}
@@ -179,12 +153,8 @@ func (writer *webSocketWriter) End(operation IOperationResult) {
 	writer.Write(operation)
 }
 
-func (writer *webSocketWriter) BinarySerializer() IBinarySerializer {
-	return writer.base.binarySerializer
-}
-
-func (writer *webSocketWriter) TextSerializer() ITextSerializer {
-	return writer.base.textSerializer
+func (writer *webSocketWriter) Serializer() ISerializer {
+	return writer.base.serializer
 }
 
 func (writer *webSocketWriter) Close() {

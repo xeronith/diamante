@@ -3,16 +3,16 @@ package client
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 
 	. "github.com/xeronith/diamante/contracts/client"
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/system"
-	"github.com/xeronith/diamante/operation/binary"
-	"github.com/xeronith/diamante/server"
-	"github.com/xeronith/diamante/utility/reflection"
+	. "github.com/xeronith/diamante/operation"
+	. "github.com/xeronith/diamante/serialization"
+	. "github.com/xeronith/diamante/utility/reflection"
 )
 
 type httpClient struct {
@@ -34,7 +34,7 @@ func NewHttpClient() IClient {
 	}
 }
 
-func CreateHttpClient(listener func(IBinaryOperationResult)) IClient {
+func CreateHttpClient(listener func(IOperationResult)) IClient {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		panic(err)
@@ -42,7 +42,7 @@ func CreateHttpClient(listener func(IBinaryOperationResult)) IClient {
 
 	return &httpClient{
 		baseClient: baseClient{
-			binaryOperationResultListener: listener,
+			operationResultListener: listener,
 		},
 		internalClient: &http.Client{
 			Jar: jar,
@@ -51,7 +51,7 @@ func CreateHttpClient(listener func(IBinaryOperationResult)) IClient {
 }
 
 // noinspection GoUnusedExportedFunction
-func CreateDistinctHttpClient(version int32, name string, listener func(IBinaryOperationResult)) IClient {
+func CreateDistinctHttpClient(version int32, name string, listener func(IOperationResult)) IClient {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		panic(err)
@@ -59,9 +59,9 @@ func CreateDistinctHttpClient(version int32, name string, listener func(IBinaryO
 
 	return &httpClient{
 		baseClient: baseClient{
-			name:                          name,
-			version:                       version,
-			binaryOperationResultListener: listener,
+			name:                    name,
+			version:                 version,
+			operationResultListener: listener,
 		},
 		internalClient: &http.Client{
 			Jar: jar,
@@ -92,7 +92,7 @@ func (client *httpClient) SetApiVersion(apiVersion int32) {
 func (client *httpClient) Connect(endpoint string, token string) error {
 	client.endpoint = endpoint
 	client.token = token
-	client.binarySerializer = server.DefaultBinarySerializer
+	client.serializer = NewProtobufSerializer()
 
 	if client.connectionEstablished != nil {
 		client.connectionEstablished(client)
@@ -102,7 +102,7 @@ func (client *httpClient) Connect(endpoint string, token string) error {
 }
 
 func (client *httpClient) Send(id uint64, operation uint64, payload Pointer) error {
-	if !reflection.IsPointer(payload) {
+	if !IsPointer(payload) {
 		return errors.New("payload should be a pointer")
 	}
 
@@ -111,12 +111,12 @@ func (client *httpClient) Send(id uint64, operation uint64, payload Pointer) err
 		err  error
 	)
 
-	binaryOperationRequest := binary.CreateBinaryOperationRequest(id, operation, client.name, client.version, client.apiVersion, client.token, nil)
-	if err := binaryOperationRequest.Load(payload, client.binarySerializer); err != nil {
+	operationRequest := CreateOperationRequest(id, operation, client.name, client.version, client.apiVersion, client.token, nil)
+	if err := operationRequest.Load(payload, client.serializer); err != nil {
 		return err
 	}
 
-	data, err = client.binarySerializer.Serialize(binaryOperationRequest.Container())
+	data, err = client.serializer.Serialize(operationRequest.Container())
 	if err != nil {
 		return err
 	}
@@ -136,19 +136,19 @@ func (client *httpClient) send(data []byte) error {
 		return err
 	}
 
-	buffer, err := ioutil.ReadAll(response.Body)
+	buffer, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err
 	}
 
-	operationResult := binary.NewBinaryOperationResult()
-	err = client.binarySerializer.Deserialize(buffer, operationResult.Container())
+	operationResult := NewOperationResult()
+	err = client.serializer.Deserialize(buffer, operationResult.Container())
 	if err != nil {
-		client.binaryOperationResultListener(nil)
+		client.operationResultListener(nil)
 		return err
 	}
 
-	client.binaryOperationResultListener(operationResult)
+	client.operationResultListener(operationResult)
 
 	return nil
 }

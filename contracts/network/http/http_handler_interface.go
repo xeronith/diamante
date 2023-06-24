@@ -13,10 +13,10 @@ import (
 type (
 	IServerDispatcher interface {
 		Logger() ILogger
-		Serializer() IBinarySerializer
+		Serializer() ISerializer
 		Serialize(Pointer) ([]byte, error)
 		Deserialize([]byte, Pointer) error
-		OnActorBinaryData(IActor, []byte) IOperationResult
+		OnData(IActor, []byte) IOperationResult
 		Request() *http.Request
 		Response() http.ResponseWriter
 		Redirect(string)

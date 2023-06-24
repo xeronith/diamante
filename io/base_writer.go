@@ -8,22 +8,20 @@ import (
 )
 
 type baseWriter struct {
-	token            string
-	logger           logging.ILogger
-	binarySerializer IBinarySerializer
-	textSerializer   ITextSerializer
-	trafficRecorder  ITrafficRecorder
-	onClosed         func()
-	closed           bool
+	token       string
+	logger      logging.ILogger
+	contentType string
+	serializer  ISerializer
+	onClosed    func()
+	closed      bool
 }
 
-func createBaseWriter(server IServer, onClosed func()) baseWriter {
+func createBaseWriter(server IServer, onClosed func(), contentType string) baseWriter {
 	return baseWriter{
-		logger:           GetDefaultLogger(),
-		binarySerializer: server.BinarySerializer(),
-		textSerializer:   server.TextSerializer(),
-		trafficRecorder:  server.TrafficRecorder(),
-		onClosed:         onClosed,
-		closed:           false,
+		logger:      GetDefaultLogger(),
+		contentType: contentType,
+		serializer:  server.Serializers()[contentType],
+		onClosed:    onClosed,
+		closed:      false,
 	}
 }

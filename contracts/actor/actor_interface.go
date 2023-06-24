@@ -19,8 +19,7 @@ type IActor interface {
 	Disconnect(IOperationResult)
 	Session() ISystemObject
 	SetSession(object ISystemObject)
-	BinarySerializer() IBinarySerializer
-	TextSerializer() ITextSerializer
+	Serializer() ISerializer
 	Signal(byte)
 	UpdateLastActivity()
 	LastActivity() int64

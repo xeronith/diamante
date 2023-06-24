@@ -13,22 +13,17 @@ import (
 	"github.com/xeronith/diamante/contracts/analytics"
 	. "github.com/xeronith/diamante/contracts/network/http"
 	. "github.com/xeronith/diamante/contracts/operation"
+	. "github.com/xeronith/diamante/contracts/serialization"
 	. "github.com/xeronith/diamante/contracts/server"
 	. "github.com/xeronith/diamante/contracts/settings"
 	. "github.com/xeronith/diamante/contracts/system"
 	. "github.com/xeronith/diamante/localization"
 	. "github.com/xeronith/diamante/logging"
-	"github.com/xeronith/diamante/operation/binary"
-	"github.com/xeronith/diamante/operation/text"
+	"github.com/xeronith/diamante/operation"
 	. "github.com/xeronith/diamante/security"
 	. "github.com/xeronith/diamante/serialization"
 	. "github.com/xeronith/diamante/utility/collections"
 	. "github.com/xeronith/diamante/utility/concurrent"
-)
-
-var (
-	DefaultTextSerializer   = NewJsonTextSerializer()
-	DefaultBinarySerializer = NewProtobufSerializer()
 )
 
 type defaultServer struct {
@@ -47,35 +42,37 @@ func New(configuration IConfiguration, operationFactory IOperationFactory, handl
 	hashKey := []byte(configuration.GetServerConfiguration().GetHashKey())
 	blockKey := []byte(configuration.GetServerConfiguration().GetBlockKey())
 
+	serializers := map[string]ISerializer{
+		"application/octet-stream": NewProtobufSerializer(),
+		"application/json":         NewJsonSerializer(),
+	}
+
 	server := &defaultServer{
 		baseServer{
-			opcodes:                    opcodes,
-			activePort:                 activePort,
-			passivePort:                passivePort,
-			diagnosticsPort:            diagnosticsPort,
-			listeners:                  NewConcurrentSlice(),
-			configuration:              configuration,
-			operations:                 make(map[uint64]IOperation),
-			securityHandler:            NewDefaultSecurityHandler(),
-			scheduler:                  newScheduler(),
-			binarySerializer:           DefaultBinarySerializer,
-			textSerializer:             DefaultTextSerializer,
-			actors:                     NewConcurrentStringMap(),
-			connectedActors:            NewConcurrentPointerMap(),
-			connectedActorsCount:       0,
-			logger:                     GetDefaultLogger(),
-			localizer:                  NewLocalizer(),
-			trafficRecorder:            NewTrafficRecorder(),
-			clientRegistry:             NewConcurrentStringToIntMap(),
-			binaryOperationRequestPool: &sync.Pool{New: func() interface{} { return binary.NewBinaryOperationRequest() }},
-			textOperationRequestPool:   &sync.Pool{New: func() interface{} { return text.NewTextOperationRequest() }},
-			secureCookie:               securecookie.New(hashKey, blockKey),
-			httpGetHandlers:            make(map[string]IHttpHandler),
-			httpPostHandlers:           make(map[string]IHttpHandler),
-			hudEnabled:                 false,
-			onServerStarted:            nil,
-			onActorConnected:           nil,
-			onActorDisconnected:        nil,
+			opcodes:              opcodes,
+			activePort:           activePort,
+			passivePort:          passivePort,
+			diagnosticsPort:      diagnosticsPort,
+			listeners:            NewConcurrentSlice(),
+			configuration:        configuration,
+			operations:           make(map[uint64]IOperation),
+			securityHandler:      NewDefaultSecurityHandler(),
+			scheduler:            newScheduler(),
+			serializers:          serializers,
+			actors:               NewConcurrentStringMap(),
+			connectedActors:      NewConcurrentPointerMap(),
+			connectedActorsCount: 0,
+			logger:               GetDefaultLogger(),
+			localizer:            NewLocalizer(),
+			clientRegistry:       NewConcurrentStringToIntMap(),
+			operationRequestPool: &sync.Pool{New: func() interface{} { return operation.NewOperationRequest() }},
+			secureCookie:         securecookie.New(hashKey, blockKey),
+			httpGetHandlers:      make(map[string]IHttpHandler),
+			httpPostHandlers:     make(map[string]IHttpHandler),
+			hudEnabled:           false,
+			onServerStarted:      nil,
+			onActorConnected:     nil,
+			onActorDisconnected:  nil,
 		},
 	}
 
@@ -151,10 +148,6 @@ func (server *defaultServer) Start() {
 }
 
 func (server *defaultServer) Shutdown() {
-	if err := server.TrafficRecorder().Stop(); err != nil {
-		log.Println(err)
-	}
-
 	server.listeners.ForEach(func(index int, object ISystemObject) {
 		if err := object.(net.Listener).Close(); err != nil {
 			log.Println(err)

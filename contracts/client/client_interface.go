@@ -15,7 +15,7 @@ type IClient interface {
 	Disconnect() error
 	Send(uint64, uint64, Pointer) error
 	OnConnectionEstablished(func(IClient))
-	SetBinaryOperationResultListener(func(IBinaryOperationResult))
-	BinarySerializer() IBinarySerializer
+	SetOperationResultListener(func(IOperationResult))
+	Serializer() ISerializer
 	IsActive() bool
 }

@@ -8,6 +8,7 @@ import (
 type IWriter interface {
 	IsClosed() bool
 	IsOpen() bool
+	ContentType() string
 	SetSecureCookie(string, string)
 	GetSecureCookie(string) string
 	SetAuthCookie(string)
@@ -15,9 +16,8 @@ type IWriter interface {
 	SetToken(string)
 	Write(IOperationResult)
 	WriteByte(byte) error
-	WriteBytes(int, []byte)
+	WriteBytes([]byte)
 	End(IOperationResult)
-	BinarySerializer() IBinarySerializer
-	TextSerializer() ITextSerializer
+	Serializer() ISerializer
 	Close()
 }

@@ -1,6 +1,9 @@
 package operation
 
-import . "github.com/xeronith/diamante/contracts/system"
+import (
+	. "github.com/xeronith/diamante/contracts/serialization"
+	. "github.com/xeronith/diamante/contracts/system"
+)
 
 type IOperationRequest interface {
 	Id() uint64
@@ -10,4 +13,6 @@ type IOperationRequest interface {
 	ClientVersion() int32
 	ClientName() string
 	Container() Pointer
+	Payload() []byte
+	Load(interface{}, ISerializer) error
 }

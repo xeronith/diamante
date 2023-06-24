@@ -12,7 +12,7 @@ import (
 type protobufSerializer struct {
 }
 
-func NewProtobufSerializer() IBinarySerializer {
+func NewProtobufSerializer() ISerializer {
 	return &protobufSerializer{}
 }
 

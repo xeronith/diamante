@@ -11,7 +11,6 @@ import (
 	"github.com/labstack/echo/v4"
 	. "github.com/xeronith/diamante/actor"
 	. "github.com/xeronith/diamante/contracts/actor"
-	"github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/io"
 )
 
@@ -59,8 +58,7 @@ func (server *defaultServer) startActiveServer() {
 			} else {
 				switch messageType {
 				case websocket.BinaryMessage, websocket.TextMessage:
-					var result operation.IOperationResult
-					result = server.OnActorBinaryData(actor, message)
+					result := server.OnData(actor, message)
 					actor.Dispatch(result)
 				default:
 					server.logger.Error(fmt.Sprintf("UNSUPPORTED SOCKET MESSAGE TYPE: %d", messageType))

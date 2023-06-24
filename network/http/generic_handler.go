@@ -8,8 +8,7 @@ import (
 
 	. "github.com/xeronith/diamante/actor"
 	. "github.com/xeronith/diamante/contracts/network/http"
-	. "github.com/xeronith/diamante/contracts/operation"
-	. "github.com/xeronith/diamante/operation/binary"
+	. "github.com/xeronith/diamante/operation"
 	. "github.com/xeronith/diamante/protobuf"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -17,7 +16,6 @@ import (
 
 func Handle[T, V protoreflect.ProtoMessage](
 	x IServerDispatcher,
-	entryPoint string,
 	requestType,
 	resultType uint64,
 	input T,
@@ -26,8 +24,6 @@ func Handle[T, V protoreflect.ProtoMessage](
 	onRequestProcessed func(V) (string, []byte),
 	redirect bool,
 ) error {
-	x.Logger().Debug(entryPoint)
-
 	body, err := io.ReadAll(x.Request().Body)
 	if err != nil {
 		return err
@@ -53,7 +49,7 @@ func Handle[T, V protoreflect.ProtoMessage](
 		onInputUnmarshalled(input)
 	}
 
-	request := CreateBinaryOperationRequest(
+	request := CreateOperationRequest(
 		uint64(time.Now().UnixNano()),
 		requestType,
 		"pipeline",
@@ -70,11 +66,11 @@ func Handle[T, V protoreflect.ProtoMessage](
 	}
 
 	actor := CreateActor(nil, false, x.RemoteAddr(), x.UserAgent())
-	result := x.OnActorBinaryData(actor, data)
+	result := x.OnData(actor, data)
 	if result.Type() != resultType {
 		if result.Type() == 0 {
 			serverErr := &ServerError{}
-			if err = x.Deserialize(result.(IBinaryOperationResult).Payload(), serverErr); err != nil {
+			if err = x.Deserialize(result.Payload(), serverErr); err != nil {
 				return err
 			}
 
@@ -88,7 +84,7 @@ func Handle[T, V protoreflect.ProtoMessage](
 		}
 	}
 
-	payload := result.(IBinaryOperationResult).Payload()
+	payload := result.Payload()
 	if err = x.Deserialize(payload, output); err != nil {
 		return err
 	}

@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-faster/city"
 	"github.com/gorilla/securecookie"
 	. "github.com/xeronith/diamante/contracts/email"
+	. "github.com/xeronith/diamante/contracts/io"
 	. "github.com/xeronith/diamante/contracts/localization"
 	. "github.com/xeronith/diamante/contracts/settings"
 	. "github.com/xeronith/diamante/contracts/sms"
@@ -34,32 +34,29 @@ import (
 )
 
 type baseServer struct {
-	mutex                      sync.RWMutex
-	asciiArt                   string
-	hudEnabled                 bool
-	activePort, passivePort    int
-	diagnosticsPort            int
-	running                    bool
-	frozen                     bool
-	listeners                  ISlice
-	operations                 map[uint64]IOperation
-	opcodes                    Opcodes
-	configuration              IConfiguration
-	trafficRecorder            ITrafficRecorder
-	clientRegistry             IStringToIntMap
-	emailProvider              IEmailProvider
-	smsProvider                ISMSProvider
-	securityHandler            ISecurityHandler
-	textSerializer             ITextSerializer
-	binarySerializer           IBinarySerializer
-	scheduler                  IScheduler
-	actors                     IStringMap
-	logger                     ILogger
-	localizer                  ILocalizer
-	measurementsProvider       IMeasurementsProvider
-	binaryOperationRequestPool *sync.Pool
-	textOperationRequestPool   *sync.Pool
-	secureCookie               *securecookie.SecureCookie
+	mutex                   sync.RWMutex
+	asciiArt                string
+	hudEnabled              bool
+	activePort, passivePort int
+	diagnosticsPort         int
+	running                 bool
+	frozen                  bool
+	listeners               ISlice
+	operations              map[uint64]IOperation
+	opcodes                 Opcodes
+	configuration           IConfiguration
+	clientRegistry          IStringToIntMap
+	emailProvider           IEmailProvider
+	smsProvider             ISMSProvider
+	securityHandler         ISecurityHandler
+	serializers             map[string]ISerializer
+	scheduler               IScheduler
+	actors                  IStringMap
+	logger                  ILogger
+	localizer               ILocalizer
+	measurementsProvider    IMeasurementsProvider
+	operationRequestPool    *sync.Pool
+	secureCookie            *securecookie.SecureCookie
 
 	// LEGACY
 	connectedActors      IPointerMap
@@ -127,10 +124,6 @@ func (server *baseServer) PassiveEndpoint() string {
 	return fmt.Sprintf("%s://%s:%d", server.getPassiveProtocol(), server.Configuration().GetServerConfiguration().GetFQDN(), server.passivePort)
 }
 
-func (server *baseServer) TrafficRecorder() ITrafficRecorder {
-	return server.trafficRecorder
-}
-
 func (server *baseServer) MeasurementsProvider() IMeasurementsProvider {
 	return server.measurementsProvider
 }
@@ -171,12 +164,16 @@ func (server *baseServer) Scheduler() IScheduler {
 	return server.scheduler
 }
 
-func (server *baseServer) BinarySerializer() IBinarySerializer {
-	return server.binarySerializer
+func (server *baseServer) Serializers() map[string]ISerializer {
+	return server.serializers
 }
 
-func (server *baseServer) TextSerializer() ITextSerializer {
-	return server.textSerializer
+func (server *baseServer) Serializer(writer IWriter) ISerializer {
+	if writer.ContentType() == "" {
+		return server.serializers["application/octet-stream"]
+	}
+
+	return server.serializers[writer.ContentType()]
 }
 
 func (server *baseServer) Logger() ILogger {
@@ -496,17 +493,6 @@ func (server *baseServer) measurement(key string, tags Tags, fields Fields) {
 	}
 
 	server.measurementsProvider.SubmitMeasurement(key, tags, fields)
-}
-
-func (server *baseServer) hash(payload interface{}) uint64 {
-	switch data := payload.(type) {
-	case []byte:
-		return city.Hash64(data)
-	case string:
-		return city.Hash64([]byte(data))
-	default:
-		return 0
-	}
 }
 
 func (server *baseServer) catch(operationId uint64, requestId uint64) {

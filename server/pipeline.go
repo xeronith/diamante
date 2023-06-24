@@ -1,6 +1,9 @@
 package server
 
 import (
+	"fmt"
+
+	"github.com/go-faster/city"
 	. "github.com/xeronith/diamante/contracts/actor"
 	. "github.com/xeronith/diamante/contracts/localization"
 	. "github.com/xeronith/diamante/contracts/operation"
@@ -11,15 +14,16 @@ import (
 var NO_PIPELINE_INFO = &pipeline{}
 
 type pipeline struct {
+	server              *baseServer
 	localizer           ILocalizer
-	textSerializer      ITextSerializer
-	binarySerializer    IBinarySerializer
+	serializer          ISerializer
 	actor               IActor
 	operation           IOperation
+	request             IOperationRequest
 	opcode              uint64
 	requestId           uint64
 	resultType          uint64
-	binary              bool
+	contentType         string
 	apiVersion          int32
 	serverVersion       int32
 	clientVersion       int32
@@ -28,13 +32,9 @@ type pipeline struct {
 }
 
 func NewPipeline(server *baseServer, actor IActor, request IOperationRequest) IPipeline {
-	binary := true
-	switch request.(type) {
-	case ITextOperationRequest:
-		binary = false
-	}
-
+	contentType := actor.Writer().ContentType()
 	operation := server.operations[request.Operation()]
+	serializer := server.serializers[contentType]
 
 	var resultType uint64
 	if operation != nil {
@@ -44,15 +44,16 @@ func NewPipeline(server *baseServer, actor IActor, request IOperationRequest) IP
 	actor.SetToken(request.Token())
 
 	return &pipeline{
+		server:              server,
 		localizer:           server.localizer,
-		textSerializer:      server.textSerializer,
-		binarySerializer:    server.binarySerializer,
+		serializer:          serializer,
 		actor:               actor,
 		operation:           operation,
+		request:             request,
 		opcode:              request.Operation(),
 		requestId:           request.Id(),
 		resultType:          resultType,
-		binary:              binary,
+		contentType:         contentType,
 		apiVersion:          request.ApiVersion(),
 		serverVersion:       server.Version(),
 		clientVersion:       request.ClientVersion(),
@@ -69,8 +70,8 @@ func (pipeline *pipeline) Operation() IOperation {
 	return pipeline.operation
 }
 
-func (pipeline *pipeline) IsBinary() bool {
-	return pipeline.binary
+func (pipeline *pipeline) Serializer() ISerializer {
+	return pipeline.serializer
 }
 
 func (pipeline *pipeline) Opcode() uint64 {
@@ -83,6 +84,10 @@ func (pipeline *pipeline) RequestId() uint64 {
 
 func (pipeline *pipeline) ResultType() uint64 {
 	return pipeline.resultType
+}
+
+func (pipeline *pipeline) ContentType() string {
+	return pipeline.contentType
 }
 
 func (pipeline *pipeline) ApiVersion() int32 {
@@ -105,6 +110,23 @@ func (pipeline *pipeline) ClientName() string {
 	return pipeline.clientName
 }
 
+func (pipeline *pipeline) IsFrozen() bool {
+	return pipeline.server.IsFrozen() && pipeline.opcode != SYSTEM_CALL_REQUEST
+}
+
 func (pipeline *pipeline) IsSystemCall() bool {
 	return pipeline.opcode == SYSTEM_CALL_REQUEST
+}
+
+func (pipeline *pipeline) Hash(payload []byte) string {
+	if payload == nil || pipeline.request.Payload() == nil {
+		return ""
+	}
+
+	return fmt.Sprintf(
+		"%x-%x-%x",
+		pipeline.opcode,
+		city.Hash64(pipeline.request.Payload()),
+		city.Hash64(payload),
+	)
 }

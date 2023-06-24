@@ -83,12 +83,8 @@ func (actor *actor) SetSession(session ISystemObject) {
 	actor.session = session
 }
 
-func (actor *actor) BinarySerializer() IBinarySerializer {
-	return actor.writer.BinarySerializer()
-}
-
-func (actor *actor) TextSerializer() ITextSerializer {
-	return actor.writer.TextSerializer()
+func (actor *actor) Serializer() ISerializer {
+	return actor.writer.Serializer()
 }
 
 func (actor *actor) LastActivity() int64 {

@@ -25,13 +25,18 @@ type httpWriter struct {
 }
 
 func CreateHttpWriter(server IServer, context echo.Context, secureCookie *securecookie.SecureCookie) IWriter {
+	contentType := context.Request().Header.Get("Content-Type")
 	return &httpWriter{
-		base:         createBaseWriter(server, nil),
+		base:         createBaseWriter(server, nil, contentType),
 		context:      context,
 		timestamp:    time.Now(),
 		opcodes:      server.Opcodes(),
 		secureCookie: secureCookie,
 	}
+}
+
+func (writer *httpWriter) ContentType() string {
+	return writer.base.contentType
 }
 
 func (writer *httpWriter) IsClosed() bool {
@@ -84,7 +89,7 @@ func (writer *httpWriter) SetToken(token string) {
 	writer.base.token = token
 }
 
-func (writer *httpWriter) Write(operation IOperationResult) {
+func (writer *httpWriter) Write(result IOperationResult) {
 	defer writer.catch()
 
 	writer.Lock()
@@ -95,55 +100,32 @@ func (writer *httpWriter) Write(operation IOperationResult) {
 		return
 	}
 
-	serviceDuration := float64(operation.ExecutionDuration().Microseconds()) / 1000
+	serviceDuration := float64(result.ExecutionDuration().Microseconds()) / 1000
 	pipelineDuration := float64(time.Since(writer.timestamp).Microseconds()) / 1000
 
 	writer.context.Response().Header().Add("X-Powered-By", "Magic")
-	writer.context.Response().Header().Add("X-Request-ID", fmt.Sprintf("%d", operation.Id()))
-	writer.context.Response().Header().Add("X-Response-Hash", operation.Hash())
-	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"0x%X\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", operation.Type(), pipelineDuration, serviceDuration))
+	writer.context.Response().Header().Add("X-Request-ID", fmt.Sprintf("%d", result.Id()))
+	writer.context.Response().Header().Add("X-Response-Hash", result.Hash())
+	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"0x%X\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", result.Type(), pipelineDuration, serviceDuration))
 
-	switch result := operation.(type) {
-	case IBinaryOperationResult:
-		data, err := writer.base.binarySerializer.Serialize(result.Container())
-		if err == nil {
-			if err := writer.context.Blob(int(result.Status()), echo.MIMEOctetStream, data); err == nil {
-				writer.base.trafficRecorder.Record(BINARY_RESULT, data)
-			} else {
-				writer.base.logger.Error(fmt.Sprintf("HTTP/BOR WRITE ERROR: %s", err))
-			}
-		} else {
-			writer.context.Response().Status = http.StatusInternalServerError
-			if _, err := fmt.Fprint(writer.context.Response(), err.Error()); err == nil {
-				//TODO: writer.base.trafficRecorder.Record(BINARY_RESULT, data)
-			} else {
-				writer.base.logger.Error(fmt.Sprintf("HTTP/BERR WRITE ERROR: %s", err))
-			}
-		}
-	case ITextOperationResult:
-		data, err := writer.base.textSerializer.Serialize(result.Container())
-		if err == nil {
+	data, err := writer.base.serializer.Serialize(result.Container())
+	if err == nil {
+		if result.ContentType() == "application/json" {
 			var response, responsePayload map[string]interface{}
-			_ = json.Unmarshal([]byte(data), &response)
-			_ = json.Unmarshal([]byte(response["payload"].(string)), &responsePayload)
+			_ = json.Unmarshal(data, &response)
+			_ = json.Unmarshal(result.Payload(), &responsePayload)
 			response["payload"] = responsePayload
-			data, _ := json.Marshal(response)
-
-			if err := writer.context.String(int(result.Status()), string(data)); err == nil {
-				writer.base.trafficRecorder.Record(TEXT_RESULT, data)
-			} else {
-				writer.base.logger.Error(fmt.Sprintf("HTTP/TOR WRITE ERROR: %s", err))
-			}
-		} else {
-			writer.context.Response().Status = http.StatusInternalServerError
-			if _, err := fmt.Fprint(writer.context.Response(), err.Error()); err == nil {
-				//TODO: writer.base.trafficRecorder.Record(TEXT_RESULT, data)
-			} else {
-				writer.base.logger.Error(fmt.Sprintf("HTTP/TERR WRITE ERROR: %s", err))
-			}
+			data, _ = json.Marshal(response)
 		}
-	default:
-		writer.base.logger.Error("HTTP WRITE ERROR: not supported")
+
+		if err := writer.context.Blob(int(result.Status()), result.ContentType(), data); err != nil {
+			writer.base.logger.Error(fmt.Sprintf("HTTP/OR WRITE ERROR: %s", err))
+		}
+	} else {
+		writer.context.Response().Status = http.StatusInternalServerError
+		if _, err := fmt.Fprint(writer.context.Response(), err.Error()); err != nil {
+			writer.base.logger.Error(fmt.Sprintf("HTTP/ERR WRITE ERROR: %s", err))
+		}
 	}
 }
 
@@ -152,7 +134,7 @@ func (writer *httpWriter) WriteByte(_ byte) error {
 	return nil
 }
 
-func (writer *httpWriter) WriteBytes(_ int, _ []byte) {
+func (writer *httpWriter) WriteBytes(_ []byte) {
 	writer.base.logger.Error("HTTP WRITER: WriteBytes not supported")
 }
 
@@ -160,12 +142,8 @@ func (writer *httpWriter) End(operation IOperationResult) {
 	writer.Write(operation)
 }
 
-func (writer *httpWriter) BinarySerializer() IBinarySerializer {
-	return writer.base.binarySerializer
-}
-
-func (writer *httpWriter) TextSerializer() ITextSerializer {
-	return writer.base.textSerializer
+func (writer *httpWriter) Serializer() ISerializer {
+	return writer.base.serializer
 }
 
 func (writer *httpWriter) Close() {

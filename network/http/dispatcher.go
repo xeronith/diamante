@@ -10,6 +10,7 @@ import (
 	. "github.com/xeronith/diamante/contracts/serialization"
 	. "github.com/xeronith/diamante/contracts/server"
 	. "github.com/xeronith/diamante/contracts/system"
+	. "github.com/xeronith/diamante/serialization"
 )
 
 type dispatcher struct {
@@ -43,20 +44,20 @@ func (dispatcher *dispatcher) Logger() ILogger {
 	return dispatcher.server.Logger()
 }
 
-func (dispatcher *dispatcher) Serializer() IBinarySerializer {
-	return dispatcher.server.BinarySerializer()
+func (dispatcher *dispatcher) Serializer() ISerializer {
+	return NewProtobufSerializer()
 }
 
 func (dispatcher *dispatcher) Serialize(object Pointer) ([]byte, error) {
-	return dispatcher.server.BinarySerializer().Serialize(object)
+	return dispatcher.Serializer().Serialize(object)
 }
 
 func (dispatcher *dispatcher) Deserialize(data []byte, object Pointer) error {
-	return dispatcher.server.BinarySerializer().Deserialize(data, object)
+	return dispatcher.Serializer().Deserialize(data, object)
 }
 
-func (dispatcher *dispatcher) OnActorBinaryData(actor IActor, data []byte) IOperationResult {
-	return dispatcher.server.OnActorBinaryData(actor, data)
+func (dispatcher *dispatcher) OnData(actor IActor, data []byte) IOperationResult {
+	return dispatcher.server.OnData(actor, data)
 }
 
 func (dispatcher *dispatcher) Request() *http.Request {

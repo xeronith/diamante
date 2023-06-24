@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xeronith/diamante/model"
 	"github.com/xeronith/diamante/utility"
 	. "github.com/xeronith/diamante/utility/collections"
 )
@@ -15,7 +14,7 @@ func TestConcurrentSlice_Append(test *testing.T) {
 
 	total := 10000
 	utility.Repeat(total, func(index int) {
-		slice.Append(model.CreateRandomSample())
+		slice.Append(index)
 	})
 
 	if slice.GetSize() != total {
@@ -26,7 +25,7 @@ func TestConcurrentSlice_Append(test *testing.T) {
 func BenchmarkConcurrentSlice_New(benchmark *testing.B) {
 	slice := NewConcurrentSlice()
 	for n := 0; n < benchmark.N; n++ {
-		slice.Append(model.CreateRandomSample())
+		slice.Append(n)
 	}
 
 	if slice.GetSize() != benchmark.N {
@@ -41,9 +40,9 @@ func TestConcurrentSlice_Remove(test *testing.T) {
 	n2 := rand.Intn(50000)
 	n3 := rand.Intn(50000)
 
-	s1 := model.CreateRandomSample()
-	s2 := model.CreateRandomSample()
-	s3 := model.CreateRandomSample()
+	s1 := 1
+	s2 := 2
+	s3 := 3
 
 	utility.Repeat(n1, func(index int) {
 		slice.Append(nil)

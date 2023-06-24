@@ -65,10 +65,8 @@ func (server *defaultServer) startPassiveServer() {
 
 			writer := CreateHttpWriter(server, context, server.secureCookie)
 			actor = CreateActor(writer, false, context.RealIP(), context.Request().UserAgent())
-			contentType := context.Request().Header.Get("Content-Type")
 
-			switch contentType {
-			case "application/json":
+			if writer.ContentType() == echo.MIMEApplicationJSON {
 				var body map[string]interface{}
 				if err := json.Unmarshal(message, &body); err != nil {
 					return echo.NewHTTPError(http.StatusBadRequest, "")
@@ -76,18 +74,12 @@ func (server *defaultServer) startPassiveServer() {
 
 				if _, exists := body["payload"]; exists {
 					payload, _ := json.Marshal(body["payload"])
-					body["payload"] = string(payload)
+					body["payload"] = payload
 					message, _ = json.Marshal(body)
 				}
-
-				fallthrough
-
-			case "text/plain":
-				result = server.OnActorTextData(actor, string(message))
-
-			default:
-				result = server.OnActorBinaryData(actor, message)
 			}
+
+			result = server.OnData(actor, message)
 
 			actor.Dispatch(result)
 			context.Response().Flush()

@@ -9,27 +9,26 @@ import (
 	"github.com/xeronith/diamante/utility/reflection"
 )
 
-type jsonBinarySerializer struct {
+type jsonSerializer struct {
 }
 
-func NewJsonBinarySerializer() IBinarySerializer {
-	return &jsonBinarySerializer{}
+func NewJsonSerializer() ISerializer {
+	return &jsonSerializer{}
 }
 
-func (serializer *jsonBinarySerializer) Serialize(object Pointer) ([]byte, error) {
+func (serializer *jsonSerializer) Serialize(object Pointer) ([]byte, error) {
 	if !reflection.IsPointer(object) {
 		return nil, errors.New("non pointer serialization failed")
 	}
 
-	data, err := json.Marshal(object)
-	if err != nil {
+	if data, err := json.Marshal(object); err != nil {
 		return nil, errors.New("json serialization failed")
 	} else {
 		return data, err
 	}
 }
 
-func (serializer *jsonBinarySerializer) Deserialize(data []byte, object Pointer) error {
+func (serializer *jsonSerializer) Deserialize(data []byte, object Pointer) error {
 	if data == nil {
 		return nil
 	}
@@ -38,8 +37,7 @@ func (serializer *jsonBinarySerializer) Deserialize(data []byte, object Pointer)
 		return errors.New("non pointer deserialization failed")
 	}
 
-	err := json.Unmarshal(data, object)
-	if err != nil {
+	if err := json.Unmarshal(data, object); err != nil {
 		return errors.New("json deserialization failed")
 	} else {
 		return nil
