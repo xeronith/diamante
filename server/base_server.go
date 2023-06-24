@@ -359,7 +359,15 @@ func (server *baseServer) executeService(timestamp time.Time, operation IOperati
 
 	output, err := operation.Execute(context, container)
 	duration := server.analyzeOperationPerformance(operation, operationId, timestamp)
-	server.measurement("operations", Tags{"type": "x"}, Fields{"operation": int64(operationId), "requestId": int64(requestId), "duration": int64(duration)})
+	server.measurement(
+		"operations",
+		Tags{"type": "x"},
+		Fields{
+			"operation": int64(operationId),
+			"requestId": int64(requestId),
+			"duration":  int64(duration),
+		},
+	)
 
 	return output, duration, err
 }

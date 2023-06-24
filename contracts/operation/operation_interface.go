@@ -18,8 +18,8 @@ type (
 		Id() (ID, ID)
 		Role() Role
 		SetRole(Role)
-		ActiveRunner() int
-		SetActiveRunner(int)
+		ActiveRunner() uint
+		SetActiveRunner(uint)
 		InputContainer() Pointer
 		OutputContainer() Pointer
 		Execute(IContext, Pointer) (Pointer, error)

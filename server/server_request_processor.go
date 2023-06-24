@@ -80,7 +80,20 @@ func (server *baseServer) OnActorOperationRequest(actor IActor, request IOperati
 	_, resultType := operation.Id()
 
 	timestamp := time.Now()
-	context := acquireContext(timestamp, server, operation, actor, request.Id(), serverVersion, request.ApiVersion(), request.ClientVersion(), clientVersion, request.ClientName(), resultType)
+	context := acquireContext(
+		timestamp,
+		server,
+		operation,
+		actor,
+		request.Id(),
+		serverVersion,
+		request.ApiVersion(),
+		request.ClientVersion(),
+		clientVersion,
+		request.ClientName(),
+		resultType,
+	)
+
 	output, duration, err := server.executeService(timestamp, operation, requestId, context, container)
 	contextResultType := context.ResultType()
 
