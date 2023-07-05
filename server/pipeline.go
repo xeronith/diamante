@@ -34,7 +34,13 @@ type pipeline struct {
 func NewPipeline(server *baseServer, actor IActor, request IOperationRequest) IPipeline {
 	contentType := actor.Writer().ContentType()
 	operation := server.operations[request.Operation()]
-	serializer := server.serializers[contentType]
+
+	var serializer ISerializer
+	if contentSerializer, ok := server.serializers[contentType]; !ok {
+		serializer = server.serializers["application/octet-stream"]
+	} else {
+		serializer = contentSerializer
+	}
 
 	var resultType uint64
 	if operation != nil {

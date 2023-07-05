@@ -45,6 +45,7 @@ func New(configuration IConfiguration, operationFactory IOperationFactory, handl
 	serializers := map[string]ISerializer{
 		"application/octet-stream": NewProtobufSerializer(),
 		"application/json":         NewJsonSerializer(),
+		"application/xml":          NewXmlSerializer(),
 	}
 
 	server := &defaultServer{

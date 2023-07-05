@@ -24,14 +24,16 @@ type httpWriter struct {
 	secureCookie *securecookie.SecureCookie
 }
 
-func CreateHttpWriter(server IServer, context echo.Context, secureCookie *securecookie.SecureCookie) IWriter {
-	contentType := context.Request().Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-
+func CreateHttpWriter(
+	server IServer,
+	context echo.Context,
+	secureCookie *securecookie.SecureCookie,
+) IWriter {
 	return &httpWriter{
-		base:         createBaseWriter(server, nil, contentType),
+		base: createBaseWriter(
+			server, nil,
+			context.Request().Header.Get("Content-Type"),
+		),
 		context:      context,
 		timestamp:    time.Now(),
 		opcodes:      server.Opcodes(),

@@ -4,9 +4,6 @@ package protobuf;
 
 option go_package = "../protobuf";
 
-message Void {
-}
-
 message OperationRequest {
     uint64 id = 1;
     uint64 operation = 2;

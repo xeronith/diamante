@@ -1,8 +1,6 @@
 package serialization
 
 import (
-	"errors"
-
 	. "github.com/xeronith/diamante/contracts/serialization"
 	. "github.com/xeronith/diamante/contracts/system"
 	"github.com/xeronith/diamante/utility/reflection"
@@ -18,13 +16,13 @@ func NewProtobufSerializer() ISerializer {
 
 func (serializer *protobufSerializer) Serialize(object Pointer) ([]byte, error) {
 	if !reflection.IsPointer(object) {
-		return nil, errors.New("non pointer serialization failed")
+		return nil, ERROR_NON_POINTER_SERIALIZATION_FAILED
 	}
 
 	if message, ok := object.(proto.Message); ok {
 		return proto.Marshal(message)
 	} else {
-		return nil, errors.New("invalid proto message")
+		return nil, ERROR_PROTO_SERIALIZATION_FAILED
 	}
 }
 
@@ -34,12 +32,12 @@ func (serializer *protobufSerializer) Deserialize(data []byte, object Pointer) e
 	}
 
 	if !reflection.IsPointer(object) {
-		return errors.New("non pointer deserialization failed")
+		return ERROR_NON_POINTER_DESERIALIZATION_FAILED
 	}
 
 	if message, ok := object.(proto.Message); ok {
 		return proto.Unmarshal(data, message)
 	} else {
-		return errors.New("invalid proto message")
+		return ERROR_PROTO_DESERIALIZATION_FAILED
 	}
 }

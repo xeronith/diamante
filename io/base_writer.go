@@ -17,10 +17,17 @@ type baseWriter struct {
 }
 
 func createBaseWriter(server IServer, onClosed func(), contentType string) baseWriter {
+	var serializer ISerializer
+	if contentSerializer, ok := server.Serializers()[contentType]; !ok {
+		serializer = server.Serializers()["application/octet-stream"]
+	} else {
+		serializer = contentSerializer
+	}
+
 	return baseWriter{
 		logger:      GetDefaultLogger(),
 		contentType: contentType,
-		serializer:  server.Serializers()[contentType],
+		serializer:  serializer,
 		onClosed:    onClosed,
 		closed:      false,
 	}

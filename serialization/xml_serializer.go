@@ -1,33 +1,33 @@
 package serialization
 
 import (
-	"encoding/json"
+	"encoding/xml"
 
 	. "github.com/xeronith/diamante/contracts/serialization"
 	. "github.com/xeronith/diamante/contracts/system"
 	"github.com/xeronith/diamante/utility/reflection"
 )
 
-type jsonSerializer struct {
+type xmlSerializer struct {
 }
 
-func NewJsonSerializer() ISerializer {
-	return &jsonSerializer{}
+func NewXmlSerializer() ISerializer {
+	return &xmlSerializer{}
 }
 
-func (serializer *jsonSerializer) Serialize(object Pointer) ([]byte, error) {
+func (serializer *xmlSerializer) Serialize(object Pointer) ([]byte, error) {
 	if !reflection.IsPointer(object) {
 		return nil, ERROR_NON_POINTER_SERIALIZATION_FAILED
 	}
 
-	if data, err := json.Marshal(object); err != nil {
-		return nil, ERROR_JSON_SERIALIZATION_FAILED
+	if data, err := xml.Marshal(object); err != nil {
+		return nil, ERROR_XML_SERIALIZATION_FAILED
 	} else {
 		return data, err
 	}
 }
 
-func (serializer *jsonSerializer) Deserialize(data []byte, object Pointer) error {
+func (serializer *xmlSerializer) Deserialize(data []byte, object Pointer) error {
 	if data == nil {
 		return nil
 	}
@@ -36,8 +36,8 @@ func (serializer *jsonSerializer) Deserialize(data []byte, object Pointer) error
 		return ERROR_NON_POINTER_DESERIALIZATION_FAILED
 	}
 
-	if err := json.Unmarshal(data, object); err != nil {
-		return ERROR_JSON_DESERIALIZATION_FAILED
+	if err := xml.Unmarshal(data, object); err != nil {
+		return ERROR_XML_DESERIALIZATION_FAILED
 	} else {
 		return nil
 	}
