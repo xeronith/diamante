@@ -91,10 +91,7 @@ func (server *defaultServer) startPassiveServer() {
 	passiveServer.HideBanner = true
 	passiveServer.Debug = false
 	passiveServer.HidePort = true
-	// passiveServer.Logger.SetLevel(labstackLog.OFF)
 
-	// passiveServer.Use(middleware.Logger())
-	// passiveServer.Use(middleware.Recover())
 	passiveServer.Use(cors)
 	passiveServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ctx echo.Context) error {

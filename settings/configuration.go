@@ -229,6 +229,7 @@ type Configuration struct {
 	Dockerized     bool
 	Environment    string      `yaml:"environment"`
 	TrafficRecord  bool        `yaml:"traffic_record"`
+	RequestLog     bool        `yaml:"request_log"`
 	AllowedOrigins []string    `yaml:"allowed_origins"`
 	Server         *Server     `yaml:"server"`
 	Influx         *Influx     `yaml:"influx"`
@@ -261,6 +262,10 @@ func (configuration *Configuration) GetEnvironment() string {
 
 func (configuration *Configuration) IsTrafficRecordEnabled() bool {
 	return configuration.TrafficRecord
+}
+
+func (configuration *Configuration) IsRequestLogEnabled() bool {
+	return configuration.RequestLog
 }
 
 func (configuration *Configuration) GetAllowedOrigins() []string {

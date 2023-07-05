@@ -8,6 +8,7 @@ type (
 		IsStagingEnvironment() bool
 		IsProductionEnvironment() bool
 		IsTrafficRecordEnabled() bool
+		IsRequestLogEnabled() bool
 		GetAllowedOrigins() []string
 		GetEnvironment() string
 		GetServerConfiguration() IServerConfiguration
