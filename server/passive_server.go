@@ -131,7 +131,7 @@ func (server *defaultServer) startPassiveServer() {
 
 	const (
 		UPLOAD_PATH     = "./media"
-		MAX_UPLOAD_SIZE = 100 * 1024 * 1024 // 100MB
+		MAX_UPLOAD_SIZE = 1024 * 1024 * 1024 // 1GB
 	)
 
 	passiveServer.POST("/media", func(ctx echo.Context) error {
