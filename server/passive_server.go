@@ -321,15 +321,17 @@ func (server *defaultServer) startPassiveServer() {
 
 	for path, httpHandler := range server.httpGetHandlers {
 		func(path string, method string, handler HttpHandlerFunc) {
-			handlerFunc := func(_context echo.Context) error {
+			handlerFunc := func(ctx echo.Context) error {
+				writer := CreateHttpWriter(server, ctx, server.secureCookie)
 				return handler(
 					dispatcher.NewDispatcher(
 						server,
-						_context.Response().Writer,
-						_context.Request(),
-						_context.QueryParam,
-						_context.Param,
-						_context.RealIP(),
+						writer,
+						ctx.Response().Writer,
+						ctx.Request(),
+						ctx.QueryParam,
+						ctx.Param,
+						ctx.RealIP(),
 					),
 				)
 			}
@@ -340,15 +342,17 @@ func (server *defaultServer) startPassiveServer() {
 
 	for path, httpHandler := range server.httpPostHandlers {
 		func(path string, method string, handler HttpHandlerFunc) {
-			handlerFunc := func(_context echo.Context) error {
+			handlerFunc := func(ctx echo.Context) error {
+				writer := CreateHttpWriter(server, ctx, server.secureCookie)
 				return handler(
 					dispatcher.NewDispatcher(
 						server,
-						_context.Response().Writer,
-						_context.Request(),
-						_context.QueryParam,
-						_context.Param,
-						_context.RealIP(),
+						writer,
+						ctx.Response().Writer,
+						ctx.Request(),
+						ctx.QueryParam,
+						ctx.Param,
+						ctx.RealIP(),
 					),
 				)
 			}

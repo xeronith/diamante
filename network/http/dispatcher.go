@@ -3,7 +3,9 @@ package http
 import (
 	"net/http"
 
+	. "github.com/xeronith/diamante/actor"
 	. "github.com/xeronith/diamante/contracts/actor"
+	. "github.com/xeronith/diamante/contracts/io"
 	. "github.com/xeronith/diamante/contracts/logging"
 	. "github.com/xeronith/diamante/contracts/network/http"
 	. "github.com/xeronith/diamante/contracts/operation"
@@ -15,6 +17,7 @@ import (
 
 type dispatcher struct {
 	server   IServer
+	actor    IActor
 	response http.ResponseWriter
 	request  *http.Request
 	query    func(string) string
@@ -24,6 +27,7 @@ type dispatcher struct {
 
 func NewDispatcher(
 	server IServer,
+	writer IWriter,
 	response http.ResponseWriter,
 	request *http.Request,
 	query func(string) string,
@@ -31,7 +35,13 @@ func NewDispatcher(
 	ip string,
 ) IServerDispatcher {
 	return &dispatcher{
-		server:   server,
+		server: server,
+		actor: CreateActor(
+			writer,
+			false,
+			ip,
+			request.UserAgent(),
+		),
 		response: response,
 		request:  request,
 		query:    query,
@@ -42,6 +52,10 @@ func NewDispatcher(
 
 func (dispatcher *dispatcher) Logger() ILogger {
 	return dispatcher.server.Logger()
+}
+
+func (dispatcher *dispatcher) Actor() IActor {
+	return dispatcher.actor
 }
 
 func (dispatcher *dispatcher) Serializer() ISerializer {
@@ -78,12 +92,4 @@ func (dispatcher *dispatcher) Query(key string) string {
 
 func (dispatcher *dispatcher) Param(key string) string {
 	return dispatcher.param(key)
-}
-
-func (dispatcher *dispatcher) RemoteAddr() string {
-	return dispatcher.ip
-}
-
-func (dispatcher *dispatcher) UserAgent() string {
-	return dispatcher.request.UserAgent()
 }

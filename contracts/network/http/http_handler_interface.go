@@ -13,6 +13,7 @@ import (
 type (
 	IServerDispatcher interface {
 		Logger() ILogger
+		Actor() IActor
 		Serializer() ISerializer
 		Serialize(Pointer) ([]byte, error)
 		Deserialize([]byte, Pointer) error
@@ -22,8 +23,6 @@ type (
 		Redirect(string)
 		Query(string) string
 		Param(string) string
-		RemoteAddr() string
-		UserAgent() string
 	}
 
 	HttpHandlerFunc func(IServerDispatcher) error

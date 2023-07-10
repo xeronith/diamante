@@ -6,7 +6,6 @@ import (
 	"io"
 	"time"
 
-	. "github.com/xeronith/diamante/actor"
 	. "github.com/xeronith/diamante/contracts/network/http"
 	. "github.com/xeronith/diamante/operation"
 	. "github.com/xeronith/diamante/protobuf"
@@ -65,8 +64,7 @@ func Handle[T, V protoreflect.ProtoMessage](
 		return err
 	}
 
-	actor := CreateActor(nil, false, x.RemoteAddr(), x.UserAgent())
-	result := x.OnData(actor, data)
+	result := x.OnData(x.Actor(), data)
 	if result.Type() != resultType {
 		if result.Type() == 0 {
 			serverErr := &ServerError{}
