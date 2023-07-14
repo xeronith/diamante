@@ -90,6 +90,14 @@ func (identity *defaultIdentity) IsInRole(role Role) bool {
 	return identityRole == role
 }
 
+func (identity *defaultIdentity) PublicKey() string {
+	return ""
+}
+
+func (identity *defaultIdentity) PrivateKey() string {
+	return ""
+}
+
 func (identity *defaultIdentity) Permission() uint64 {
 	return identity.role
 }

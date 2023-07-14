@@ -37,6 +37,8 @@ type (
 		SetUserAgent(string)
 		Hash() string
 		Salt() string
+		PublicKey() string
+		PrivateKey() string
 		Permission() uint64
 		Restriction() uint32
 		Role() Role
