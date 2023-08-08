@@ -179,6 +179,9 @@ func (server *defaultServer) startPassiveServer() {
 		rand.Read(data)
 		fileName := fmt.Sprintf("%x_%d", data, time.Now().UnixNano())
 		fileExtension := strings.ToLower(filepath.Ext(header.Filename))
+		if fileExtension == ".error" {
+			return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE_TYPE")
+		}
 
 		newPath := filepath.Join(UPLOAD_PATH, fileName+fileExtension)
 		thumbnailPath := filepath.Join(UPLOAD_PATH, fileName+"_thumbnail"+fileExtension)
