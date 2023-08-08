@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/codingsince1985/checksum"
@@ -145,7 +146,7 @@ func (server *defaultServer) startPassiveServer() {
 			return echo.NewHTTPError(http.StatusBadRequest, "FILE_TOO_BIG")
 		}
 
-		file, _, err := request.FormFile("file")
+		file, header, err := request.FormFile("file")
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE")
 		}
@@ -177,14 +178,10 @@ func (server *defaultServer) startPassiveServer() {
 		data := make([]byte, 12)
 		rand.Read(data)
 		fileName := fmt.Sprintf("%x_%d", data, time.Now().UnixNano())
+		fileExtension := strings.ToLower(filepath.Ext(header.Filename))
 
-		fileEndings, err := mime.ExtensionsByType(fileType)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_READ_FILE_TYPE")
-		}
-
-		newPath := filepath.Join(UPLOAD_PATH, fileName+fileEndings[len(fileEndings)-1])
-		thumbnailPath := filepath.Join(UPLOAD_PATH, fileName+"_thumbnail.jpg")
+		newPath := filepath.Join(UPLOAD_PATH, fileName+fileExtension)
+		thumbnailPath := filepath.Join(UPLOAD_PATH, fileName+"_thumbnail"+fileExtension)
 		newFile, err := os.Create(newPath)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
