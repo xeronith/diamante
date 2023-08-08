@@ -15,6 +15,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/codingsince1985/checksum"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	. "github.com/xeronith/diamante/actor"
@@ -30,6 +31,7 @@ type uploadedMedia struct {
 	ContentType  string `json:"contentType"`
 	ThumbnailUrl string `json:"thumbnailUrl"`
 	Url          string `json:"url"`
+	Checksum     string `json:"checksum"`
 }
 
 func (server *defaultServer) startPassiveServer() {
@@ -193,6 +195,11 @@ func (server *defaultServer) startPassiveServer() {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
 		}
 
+		sha256, err := checksum.SHA256sum(newPath)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_CALCULATE_CHECKSUM")
+		}
+
 		thumbnailUrl := ""
 		if err := utility.CreateThumbnail(newPath, thumbnailPath, 400, 400); err == nil {
 			thumbnailUrl = fmt.Sprintf("%s://%s/%s",
@@ -210,6 +217,7 @@ func (server *defaultServer) startPassiveServer() {
 				server.configuration.GetServerConfiguration().GetFQDN(),
 				newPath,
 			),
+			Checksum: sha256,
 		})
 	})
 

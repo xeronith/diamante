@@ -3,6 +3,7 @@ module github.com/xeronith/diamante
 go 1.19
 
 require (
+	github.com/codingsince1985/checksum v1.3.0
 	github.com/disintegration/imaging v1.6.2
 	github.com/go-faster/city v1.0.1
 	github.com/gofrs/uuid v3.3.0+incompatible
