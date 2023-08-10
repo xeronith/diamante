@@ -134,6 +134,7 @@ func (server *defaultServer) startPassiveServer() {
 
 	const (
 		UPLOAD_PATH     = "./media"
+		PLAYGROUND_PATH = "./playground"
 		MAX_UPLOAD_SIZE = 1024 * 1024 * 1024 // 1GB
 	)
 
@@ -316,6 +317,7 @@ func (server *defaultServer) startPassiveServer() {
 	})
 
 	passiveServer.Static("/media", UPLOAD_PATH)
+	passiveServer.Static("/playground", PLAYGROUND_PATH)
 
 	passiveServer.GET("/health", func(context echo.Context) error {
 		return context.String(http.StatusOK, "OK")
