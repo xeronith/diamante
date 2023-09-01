@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"runtime"
 	"sync"
 	"time"
 
@@ -109,10 +110,15 @@ func (writer *httpWriter) Write(result IOperationResult) {
 	serviceDuration := float64(result.ExecutionDuration().Microseconds()) / 1000
 	pipelineDuration := float64(time.Since(writer.timestamp).Microseconds()) / 1000
 
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	alloc := memStats.TotalAlloc / 1024 / 1024
+	sys := memStats.Sys / 1024 / 1024
+
 	writer.context.Response().Header().Add("X-Powered-By", "Magic")
 	writer.context.Response().Header().Add("X-Request-ID", fmt.Sprintf("%d", result.Id()))
 	writer.context.Response().Header().Add("X-Response-Hash", result.Hash())
-	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"0x%X\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", result.Type(), pipelineDuration, serviceDuration))
+	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"Opcode: 0x%X, Alloc: %d MiB, Sys: %d MiB, GC: %d\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", result.Type(), alloc, sys, memStats.NumGC, pipelineDuration, serviceDuration))
 
 	requestHash := writer.context.Request().Header.Get("X-Request-Hash")
 	if requestHash != "" && requestHash == result.Hash() {
