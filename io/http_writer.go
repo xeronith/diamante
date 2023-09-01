@@ -112,7 +112,7 @@ func (writer *httpWriter) Write(result IOperationResult) {
 
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	alloc := memStats.TotalAlloc / 1024 / 1024
+	alloc := memStats.Alloc / 1024 / 1024
 	sys := memStats.Sys / 1024 / 1024
 
 	writer.context.Response().Header().Add("X-Powered-By", "Magic")
