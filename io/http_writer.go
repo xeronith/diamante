@@ -114,6 +114,12 @@ func (writer *httpWriter) Write(result IOperationResult) {
 	writer.context.Response().Header().Add("X-Response-Hash", result.Hash())
 	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"0x%X\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", result.Type(), pipelineDuration, serviceDuration))
 
+	requestHash := writer.context.Request().Header.Get("X-Request-Hash")
+	if requestHash != "" && requestHash == result.Hash() {
+		writer.context.String(http.StatusNotModified, "")
+		return
+	}
+
 	data, err := writer.base.serializer.Serialize(result.Container())
 	if err == nil {
 		if result.ContentType() == "application/json" {
