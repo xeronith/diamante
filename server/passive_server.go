@@ -159,7 +159,7 @@ func (server *defaultServer) startPassiveServer() {
 		}
 
 		// DetectContentType only needs the first 512 bytes
-		fileType := http.DetectContentType(fileBytes)
+		contentType := http.DetectContentType(fileBytes)
 		/* switch fileType {
 		case
 			"image/jpeg", "image/jpg",
@@ -178,47 +178,59 @@ func (server *defaultServer) startPassiveServer() {
 
 		data := make([]byte, 12)
 		rand.Read(data)
-		fileName := fmt.Sprintf("%x_%d", data, time.Now().UnixNano())
+		tempFileName := fmt.Sprintf("%x_%d", data, time.Now().UnixNano())
 		fileExtension := strings.ToLower(filepath.Ext(header.Filename))
 		if fileExtension == ".error" {
 			return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE_TYPE")
 		}
 
-		newPath := filepath.Join(UPLOAD_PATH, fileName+fileExtension)
-		thumbnailPath := filepath.Join(UPLOAD_PATH, fileName+"_thumbnail"+fileExtension)
-		newFile, err := os.Create(newPath)
+		tempPath := filepath.Join(UPLOAD_PATH, fmt.Sprintf("%s%s", tempFileName, fileExtension))
+		tempFile, err := os.Create(tempPath)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
 		}
 
-		defer newFile.Close() // idempotent, okay to call twice
-		if _, err := newFile.Write(fileBytes); err != nil || newFile.Close() != nil {
+		defer tempFile.Close()
+		if _, err := tempFile.Write(fileBytes); err != nil || tempFile.Close() != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_WRITE_FILE")
 		}
 
-		sha256, err := checksum.SHA256sum(newPath)
+		sha256Checksum, err := checksum.SHA256sum(tempPath)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "CANT_CALCULATE_CHECKSUM")
 		}
 
-		thumbnailUrl := ""
-		if err := utility.CreateThumbnail(newPath, thumbnailPath, 400, 400); err == nil {
-			thumbnailUrl = fmt.Sprintf("%s://%s/%s",
-				server.configuration.GetServerConfiguration().GetProtocol(),
-				server.configuration.GetServerConfiguration().GetFQDN(),
-				thumbnailPath,
-			)
+		config := server.configuration.GetServerConfiguration()
+		protocol := config.GetProtocol()
+		fqdn := config.GetFQDN()
+
+		uploadedFilePath := filepath.Join(UPLOAD_PATH, fmt.Sprintf("%s%s", sha256Checksum, fileExtension))
+		uploadedFileUrl := fmt.Sprintf("%s://%s/%s", protocol, fqdn, uploadedFilePath)
+
+		thumbnailPath := filepath.Join(UPLOAD_PATH, fmt.Sprintf("%s_thumbnail%s", sha256Checksum, fileExtension))
+		thumbnailUrl := fmt.Sprintf("%s://%s/%s", protocol, fqdn, thumbnailPath)
+
+		if fileStat, err := os.Stat(uploadedFilePath); os.IsNotExist(err) {
+			if err := os.Rename(tempPath, uploadedFilePath); err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "CANT_MOVE_FILE")
+			}
+
+			if err := utility.CreateThumbnail(uploadedFilePath, thumbnailPath, 400, 400); err != nil {
+				thumbnailUrl = ""
+			}
+		} else {
+			_ = os.Remove(tempPath)
+
+			if fileStat.Size() != int64(len(fileBytes)) {
+				return echo.NewHTTPError(http.StatusBadRequest, "INVALID_FILE_CONTENT")
+			}
 		}
 
 		return ctx.JSON(http.StatusOK, uploadedMedia{
-			ContentType:  fileType,
+			ContentType:  contentType,
 			ThumbnailUrl: thumbnailUrl,
-			Url: fmt.Sprintf("%s://%s/%s",
-				server.configuration.GetServerConfiguration().GetProtocol(),
-				server.configuration.GetServerConfiguration().GetFQDN(),
-				newPath,
-			),
-			Checksum: sha256,
+			Url:          uploadedFileUrl,
+			Checksum:     sha256Checksum,
 		})
 	})
 
@@ -317,7 +329,10 @@ func (server *defaultServer) startPassiveServer() {
 	})
 
 	passiveServer.Static("/media", UPLOAD_PATH)
-	passiveServer.Static("/playground", PLAYGROUND_PATH)
+
+	if !server.configuration.IsProductionEnvironment() {
+		passiveServer.Static("/playground", PLAYGROUND_PATH)
+	}
 
 	passiveServer.GET("/health", func(context echo.Context) error {
 		return context.String(http.StatusOK, "OK")
