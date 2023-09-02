@@ -16,3 +16,11 @@ type IStringMap interface {
 	Filter(func(ISystemObject) bool) []ISystemObject
 	Map(func(ISystemObject) ISystemObject) []ISystemObject
 }
+
+type IOrderedStringMap interface {
+	IStringMap
+	IndexOf(ISystemObject) int
+	IndexOfKey(string) int
+	GetKeyAt(int) string
+	GetValueAt(int) ISystemObject
+}

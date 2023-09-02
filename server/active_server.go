@@ -42,7 +42,12 @@ func (server *defaultServer) startActiveServer() {
 			server.OnSocketDisconnected(actor)
 		})
 
-		actor = CreateActor(writer, true, context.RealIP(), context.Request().UserAgent())
+		actor = CreateActor(writer,
+			true,
+			"",
+			context.RealIP(),
+			context.Request().UserAgent(),
+		)
 
 		defer writer.Close()
 		server.OnSocketConnected(actor)

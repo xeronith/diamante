@@ -75,6 +75,11 @@ func (result *operationResult) ExecutionDuration() time.Duration {
 	return result.duration
 }
 
+func (result *operationResult) ResetDuration() IOperationResult {
+	result.duration = 0
+	return result
+}
+
 func (result *operationResult) Hash() string {
 	return result.container.Hash
 }

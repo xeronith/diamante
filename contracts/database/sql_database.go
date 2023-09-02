@@ -29,6 +29,7 @@ type (
 		InsertAll(Command, int64, ...Parameter) error
 		Count(Command, ...Parameter) (int, error)
 		WithTransaction(SqlTransactionHandler) error
+		OnChanged(func(...string))
 	}
 
 	ISqlTransaction interface {

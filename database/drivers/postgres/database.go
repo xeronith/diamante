@@ -20,6 +20,7 @@ var user, password string
 type sqlDatabase struct {
 	name             string
 	connectionString string
+	callbacks        ISlice
 }
 
 func NewDatabase(configuration IConfiguration, logger ILogger, dbname string) ISqlDatabase {
@@ -41,6 +42,7 @@ func NewDatabase(configuration IConfiguration, logger ILogger, dbname string) IS
 	return &sqlDatabase{
 		name:             dbname,
 		connectionString: fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname),
+		callbacks:        NewConcurrentSlice(),
 	}
 }
 
@@ -202,7 +204,16 @@ func (database *sqlDatabase) Execute(command Command, parameters ...Parameter) (
 		return 0, err
 	}
 
-	return result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return rowsAffected, err
+	}
+
+	if rowsAffected > 0 {
+		database.notifyChanged(command)
+	}
+
+	return rowsAffected, err
 }
 
 func (database *sqlDatabase) ExecuteAtomic(transaction ISqlTransaction, command Command, parameters ...Parameter) (int64, error) {
@@ -212,7 +223,16 @@ func (database *sqlDatabase) ExecuteAtomic(transaction ISqlTransaction, command 
 			return 0, err
 		}
 
-		return result.RowsAffected()
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return rowsAffected, err
+		}
+
+		if rowsAffected > 0 {
+			database.notifyChanged(command)
+		}
+
+		return rowsAffected, err
 	}
 
 	return 0, errors.New("transaction_not_valid")
@@ -277,6 +297,10 @@ func (database *sqlDatabase) ExecuteBatch(command Command, count int64, paramete
 
 	if err := transaction.Commit(); err != nil {
 		return 0, nil
+	}
+
+	if total > 0 {
+		database.notifyChanged(command)
 	}
 
 	return total, nil
@@ -396,6 +420,20 @@ func (database *sqlDatabase) WithTransaction(handler SqlTransactionHandler) (err
 
 	err = handler(sqlTransaction)
 	return err
+}
+
+func (database *sqlDatabase) OnChanged(callback func(...string)) {
+	if callback != nil {
+		database.callbacks.Append(callback)
+	}
+}
+
+func (database *sqlDatabase) notifyChanged(args ...string) {
+	database.callbacks.ForEach(func(_ int, object system.ISystemObject) {
+		if object != nil {
+			object.(func(...string))(args...)
+		}
+	})
 }
 
 type sqlTransaction struct {

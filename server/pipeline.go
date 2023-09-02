@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-faster/city"
 	. "github.com/xeronith/diamante/contracts/actor"
@@ -130,9 +131,23 @@ func (pipeline *pipeline) Hash(payload []byte) string {
 	}
 
 	return fmt.Sprintf(
-		"%x-%x-%x",
-		pipeline.opcode,
+		"%x%x%x%x",
+		city.Hash64([]byte(pipeline.actor.Token())),
 		city.Hash64(pipeline.request.Payload()),
+		pipeline.opcode,
 		city.Hash64(payload),
 	)
+}
+
+func (pipeline *pipeline) IsAcceptable(result IOperationResult) bool {
+	if pipeline.request == nil {
+		return false
+	}
+
+	return strings.HasPrefix(result.Hash(), fmt.Sprintf(
+		"%x%x%x",
+		city.Hash64([]byte(pipeline.actor.Token())),
+		city.Hash64(pipeline.request.Payload()),
+		pipeline.opcode,
+	))
 }

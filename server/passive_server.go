@@ -66,8 +66,19 @@ func (server *defaultServer) startPassiveServer() {
 				result IOperationResult
 			)
 
-			writer := CreateHttpWriter(server, context, server.secureCookie)
-			actor = CreateActor(writer, false, context.RealIP(), context.Request().UserAgent())
+			writer := CreateHttpWriter(
+				server,
+				context,
+				server.secureCookie,
+			)
+
+			actor = CreateActor(
+				writer,
+				false,
+				context.Request().Header.Get("X-Request-Hash"),
+				context.RealIP(),
+				context.Request().UserAgent(),
+			)
 
 			if writer.ContentType() == echo.MIMEApplicationJSON {
 				var body map[string]interface{}

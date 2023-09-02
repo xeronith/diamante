@@ -13,6 +13,7 @@ import (
 
 type actor struct {
 	token         string
+	requestHash   string
 	remoteAddress string
 	userAgent     string
 	identity      Identity
@@ -22,8 +23,9 @@ type actor struct {
 	active        bool
 }
 
-func CreateActor(writer IWriter, active bool, remoteAddress string, userAgent string) IActor {
+func CreateActor(writer IWriter, active bool, requestHash string, remoteAddress string, userAgent string) IActor {
 	return &actor{
+		requestHash:   requestHash,
 		remoteAddress: remoteAddress,
 		userAgent:     userAgent,
 		writer:        writer,
@@ -57,6 +59,10 @@ func (actor *actor) SetToken(token string) {
 	if actor.writer != nil {
 		actor.writer.SetToken(token)
 	}
+}
+
+func (actor *actor) RequestHash() string {
+	return actor.requestHash
 }
 
 func (actor *actor) RemoteAddress() string {

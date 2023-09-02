@@ -65,6 +65,7 @@ func New(configuration IConfiguration, operationFactory IOperationFactory, handl
 			connectedActorsCount: 0,
 			logger:               GetDefaultLogger(),
 			localizer:            NewLocalizer(),
+			cache:                NewConcurrentOrderedStringMap(1000),
 			clientRegistry:       NewConcurrentStringToIntMap(),
 			operationRequestPool: &sync.Pool{New: func() interface{} { return operation.NewOperationRequest() }},
 			secureCookie:         securecookie.New(hashKey, blockKey),
@@ -75,6 +76,10 @@ func New(configuration IConfiguration, operationFactory IOperationFactory, handl
 			onActorConnected:     nil,
 			onActorDisconnected:  nil,
 		},
+	}
+
+	server.onStorageUpdated = func(...string) {
+		server.cache.Clear()
 	}
 
 	if configuration.IsTestEnvironment() {

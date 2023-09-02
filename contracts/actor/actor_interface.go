@@ -13,6 +13,7 @@ type IActor interface {
 	SetIdentity(Identity)
 	Token() string
 	SetToken(string)
+	RequestHash() string
 	RemoteAddress() string
 	UserAgent() string
 	Dispatch(IOperationResult)

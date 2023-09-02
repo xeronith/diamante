@@ -54,6 +54,8 @@ type baseServer struct {
 	actors                  IStringMap
 	logger                  ILogger
 	localizer               ILocalizer
+	cache                   IStringMap
+	onStorageUpdated        func(...string)
 	measurementsProvider    IMeasurementsProvider
 	operationRequestPool    *sync.Pool
 	secureCookie            *securecookie.SecureCookie
@@ -122,6 +124,10 @@ func (server *baseServer) ActiveEndpoint() string {
 
 func (server *baseServer) PassiveEndpoint() string {
 	return fmt.Sprintf("%s://%s:%d", server.getPassiveProtocol(), server.Configuration().GetServerConfiguration().GetFQDN(), server.passivePort)
+}
+
+func (server *baseServer) OnStorageUpdated() func(...string) {
+	return server.onStorageUpdated
 }
 
 func (server *baseServer) MeasurementsProvider() IMeasurementsProvider {

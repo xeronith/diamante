@@ -15,6 +15,7 @@ type IOperationResult interface {
 	Container() Pointer
 	ServerVersion() int32
 	ExecutionDuration() time.Duration
+	ResetDuration() IOperationResult
 	Hash() string
 	Payload() []byte
 	Load(interface{}, ISerializer) error

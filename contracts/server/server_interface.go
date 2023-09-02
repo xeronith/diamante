@@ -34,6 +34,8 @@ type IServer interface {
 	ActiveEndpoint() string
 	PassiveEndpoint() string
 
+	OnStorageUpdated() func(...string)
+
 	Serializers() map[string]ISerializer
 	Serializer(IWriter) ISerializer
 

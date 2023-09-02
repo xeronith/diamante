@@ -39,6 +39,7 @@ func NewDispatcher(
 		actor: CreateActor(
 			writer,
 			false,
+			request.Header.Get("X-Request-Hash"),
 			ip,
 			request.UserAgent(),
 		),

@@ -17,6 +17,13 @@ func (server *baseServer) OnOperationRequest(pipeline IPipeline, request IOperat
 		return pipeline.Unauthorized()
 	}
 
+	if item, exists := server.cache.Get(pipeline.Actor().RequestHash()); exists {
+		result := item.(IOperationResult).ResetDuration()
+		if pipeline.IsAcceptable(result) {
+			return result
+		}
+	}
+
 	container := operation.InputContainer()
 	if container == nil || !IsPointer(container) {
 		return pipeline.InternalServerError(NON_POINTER_PAYLOAD_CONTAINER)
@@ -41,6 +48,8 @@ func (server *baseServer) OnOperationRequest(pipeline IPipeline, request IOperat
 	if payload, err := pipeline.Serializer().Serialize(output); err != nil {
 		return pipeline.InternalServerError(err)
 	} else {
-		return CreateOperationResult(pipeline.RequestId(), OK, context.ResultType(), payload, pipeline, duration)
+		result := CreateOperationResult(pipeline.RequestId(), OK, context.ResultType(), payload, pipeline, duration)
+		server.cache.Put(result.Hash(), result)
+		return result
 	}
 }

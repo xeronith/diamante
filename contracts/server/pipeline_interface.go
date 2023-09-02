@@ -22,6 +22,7 @@ type IPipeline interface {
 	IsFrozen() bool
 	IsSystemCall() bool
 	Hash([]byte) string
+	IsAcceptable(IOperationResult) bool
 
 	ServiceUnavailable(...error) IOperationResult
 	InternalServerError(...error) IOperationResult
