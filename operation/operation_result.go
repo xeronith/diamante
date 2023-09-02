@@ -36,7 +36,7 @@ func CreateOperationResult(
 			Payload:       payload,
 			ApiVersion:    pipeline.ApiVersion(),
 			ServerVersion: pipeline.ServerVersion(),
-			Hash:          pipeline.Hash(payload),
+			Hash:          pipeline.Sign(payload),
 		},
 		contentType: pipeline.ContentType(),
 		duration:    duration,
@@ -80,7 +80,7 @@ func (result *operationResult) ResetDuration() IOperationResult {
 	return result
 }
 
-func (result *operationResult) Hash() string {
+func (result *operationResult) Signature() string {
 	return result.container.Hash
 }
 

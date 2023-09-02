@@ -116,12 +116,12 @@ func (writer *httpWriter) Write(result IOperationResult) {
 	sys := memStats.Sys / 1024 / 1024
 
 	writer.context.Response().Header().Add("X-Powered-By", "Magic")
-	writer.context.Response().Header().Add("X-Request-ID", fmt.Sprintf("%d", result.Id()))
-	writer.context.Response().Header().Add("X-Response-Hash", result.Hash())
+	writer.context.Response().Header().Add("X-Request-Timestamp", fmt.Sprintf("%d", result.Id()))
+	writer.context.Response().Header().Add("X-Response-Signature", result.Signature())
 	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"Opcode: 0x%X, Alloc: %d MiB, Sys: %d MiB, GC: %d\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", result.Type(), alloc, sys, memStats.NumGC, pipelineDuration, serviceDuration))
 
-	requestHash := writer.context.Request().Header.Get("X-Request-Hash")
-	if requestHash != "" && requestHash == result.Hash() {
+	signature := writer.context.Request().Header.Get("X-Request-Signature")
+	if signature != "" && signature == result.Signature() {
 		writer.context.String(http.StatusNotModified, "")
 		return
 	}

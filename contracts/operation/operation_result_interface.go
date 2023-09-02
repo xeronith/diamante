@@ -16,7 +16,7 @@ type IOperationResult interface {
 	ServerVersion() int32
 	ExecutionDuration() time.Duration
 	ResetDuration() IOperationResult
-	Hash() string
+	Signature() string
 	Payload() []byte
 	Load(interface{}, ISerializer) error
 }

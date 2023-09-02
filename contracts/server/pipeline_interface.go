@@ -21,7 +21,8 @@ type IPipeline interface {
 	ClientName() string
 	IsFrozen() bool
 	IsSystemCall() bool
-	Hash([]byte) string
+	Sign([]byte) string
+	Signature() string
 	IsAcceptable(IOperationResult) bool
 
 	ServiceUnavailable(...error) IOperationResult

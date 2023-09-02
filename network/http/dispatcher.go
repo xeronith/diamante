@@ -39,7 +39,7 @@ func NewDispatcher(
 		actor: CreateActor(
 			writer,
 			false,
-			request.Header.Get("X-Request-Hash"),
+			request.Header.Get("X-Request-Signature"),
 			ip,
 			request.UserAgent(),
 		),

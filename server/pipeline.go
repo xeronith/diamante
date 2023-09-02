@@ -73,6 +73,10 @@ func (pipeline *pipeline) Actor() IActor {
 	return pipeline.actor
 }
 
+func (pipeline *pipeline) Signature() string {
+	return pipeline.actor.Signature()
+}
+
 func (pipeline *pipeline) Operation() IOperation {
 	return pipeline.operation
 }
@@ -125,7 +129,7 @@ func (pipeline *pipeline) IsSystemCall() bool {
 	return pipeline.opcode == SYSTEM_CALL_REQUEST
 }
 
-func (pipeline *pipeline) Hash(payload []byte) string {
+func (pipeline *pipeline) Sign(payload []byte) string {
 	if payload == nil || pipeline.request == nil {
 		return ""
 	}
@@ -144,7 +148,7 @@ func (pipeline *pipeline) IsAcceptable(result IOperationResult) bool {
 		return false
 	}
 
-	return strings.HasPrefix(result.Hash(), fmt.Sprintf(
+	return strings.HasPrefix(result.Signature(), fmt.Sprintf(
 		"%x%x%x",
 		city.Hash64([]byte(pipeline.actor.Token())),
 		city.Hash64(pipeline.request.Payload()),

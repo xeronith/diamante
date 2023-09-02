@@ -75,7 +75,7 @@ func (server *defaultServer) startPassiveServer() {
 			actor = CreateActor(
 				writer,
 				false,
-				context.Request().Header.Get("X-Request-Hash"),
+				context.Request().Header.Get("X-Request-Signature"),
 				context.RealIP(),
 				context.Request().UserAgent(),
 			)
