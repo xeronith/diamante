@@ -1,6 +1,8 @@
 package server
 
 import (
+	"sync/atomic"
+
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/server"
 	. "github.com/xeronith/diamante/operation"
@@ -18,9 +20,9 @@ func (server *baseServer) OnOperationRequest(pipeline IPipeline, request IOperat
 	}
 
 	if item, exists := server.cache.Get(pipeline.Signature()); exists {
-		result := item.(IOperationResult).ResetDuration()
+		result := item.(IOperationResult)
 		if pipeline.IsAcceptable(result) {
-			return result
+			return result.UpdateStat(true, server.cacheMiss, atomic.AddInt64(&server.cacheHit, 1))
 		}
 	}
 
@@ -50,6 +52,7 @@ func (server *baseServer) OnOperationRequest(pipeline IPipeline, request IOperat
 	} else {
 		result := CreateOperationResult(pipeline.RequestId(), OK, context.ResultType(), payload, pipeline, duration)
 		server.cache.Put(result.Signature(), result)
-		return result
+
+		return result.UpdateStat(false, atomic.AddInt64(&server.cacheMiss, 1), server.cacheHit)
 	}
 }

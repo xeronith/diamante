@@ -15,8 +15,9 @@ type IOperationResult interface {
 	Container() Pointer
 	ServerVersion() int32
 	ExecutionDuration() time.Duration
-	ResetDuration() IOperationResult
+	UpdateStat(bool, int64, int64) IOperationResult
 	Signature() string
 	Payload() []byte
 	Load(interface{}, ISerializer) error
+	Stat() (int64, int64)
 }

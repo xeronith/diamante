@@ -114,11 +114,12 @@ func (writer *httpWriter) Write(result IOperationResult) {
 	runtime.ReadMemStats(&memStats)
 	alloc := memStats.Alloc / 1024 / 1024
 	sys := memStats.Sys / 1024 / 1024
+	miss, hit := result.Stat()
 
 	writer.context.Response().Header().Add("X-Powered-By", "Magic")
 	writer.context.Response().Header().Add("X-Request-Timestamp", fmt.Sprintf("%d", result.Id()))
 	writer.context.Response().Header().Add("X-Response-Signature", result.Signature())
-	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"Opcode: 0x%X, Alloc: %d MiB, Sys: %d MiB, GC: %d\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", result.Type(), alloc, sys, memStats.NumGC, pipelineDuration, serviceDuration))
+	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"Opcode: 0x%X, Alloc: %d MiB, Sys: %d MiB, GC: %d, Miss: %d, Hit: %d\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", result.Type(), alloc, sys, memStats.NumGC, miss, hit, pipelineDuration, serviceDuration))
 
 	signature := writer.context.Request().Header.Get("X-Request-Signature")
 	if signature != "" && signature == result.Signature() {

@@ -55,6 +55,8 @@ type baseServer struct {
 	logger                  ILogger
 	localizer               ILocalizer
 	cache                   IStringMap
+	cacheMiss               int64
+	cacheHit                int64
 	onStorageUpdated        func(...string)
 	measurementsProvider    IMeasurementsProvider
 	operationRequestPool    *sync.Pool

@@ -14,6 +14,7 @@ type operationResult struct {
 	container   protobuf.OperationResult
 	contentType string
 	duration    time.Duration
+	miss, hit   int64
 }
 
 func NewOperationResult() IOperationResult {
@@ -75,9 +76,19 @@ func (result *operationResult) ExecutionDuration() time.Duration {
 	return result.duration
 }
 
-func (result *operationResult) ResetDuration() IOperationResult {
-	result.duration = 0
+func (result *operationResult) UpdateStat(cached bool, miss, hit int64) IOperationResult {
+	if cached {
+		result.duration = 0
+	}
+
+	result.miss = miss
+	result.hit = hit
+
 	return result
+}
+
+func (result *operationResult) Stat() (int64, int64) {
+	return result.miss, result.hit
 }
 
 func (result *operationResult) Signature() string {
