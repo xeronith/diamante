@@ -65,7 +65,7 @@ func New(configuration IConfiguration, operationFactory IOperationFactory, handl
 			connectedActorsCount: 0,
 			logger:               GetDefaultLogger(),
 			localizer:            NewLocalizer(),
-			cache:                NewConcurrentOrderedStringMap(1000),
+			cache:                NewConcurrentCircularStringMap(1000),
 			clientRegistry:       NewConcurrentStringToIntMap(),
 			operationRequestPool: &sync.Pool{New: func() interface{} { return operation.NewOperationRequest() }},
 			secureCookie:         securecookie.New(hashKey, blockKey),

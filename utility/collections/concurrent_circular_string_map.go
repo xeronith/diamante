@@ -7,20 +7,24 @@ import (
 	. "github.com/xeronith/diamante/contracts/system"
 )
 
-type concurrentOrderedStringMap struct {
+type concurrentCircularStringMap struct {
 	sync.RWMutex
+	current    int
+	capacity   int
 	keys       []string
 	collection map[string]ISystemObject
 }
 
-func NewConcurrentOrderedStringMap() IOrderedStringMap {
-	return &concurrentOrderedStringMap{
-		keys:       make([]string, 0),
-		collection: make(map[string]ISystemObject),
+func NewConcurrentCircularStringMap(capacity int) IOrderedStringMap {
+	return &concurrentCircularStringMap{
+		current:    -1,
+		capacity:   capacity,
+		keys:       make([]string, capacity),
+		collection: make(map[string]ISystemObject, capacity),
 	}
 }
 
-func (_map *concurrentOrderedStringMap) Load(collection map[string]ISystemObject) {
+func (_map *concurrentCircularStringMap) Load(collection map[string]ISystemObject) {
 	keys := make([]string, 0)
 	for key := range collection {
 		keys = append(keys, key)
@@ -36,53 +40,44 @@ func (_map *concurrentOrderedStringMap) Load(collection map[string]ISystemObject
 	_map.collection = collection
 }
 
-func (_map *concurrentOrderedStringMap) Put(key string, value ISystemObject) {
+func (_map *concurrentCircularStringMap) Put(key string, value ISystemObject) {
 	_map.Lock()
 	defer _map.Unlock()
 	if _, exists := _map.collection[key]; !exists {
-		_map.keys = append(_map.keys, key)
+		_map.current = (_map.current + 1) % _map.capacity
+		if _map.keys[_map.current] != "" {
+			delete(_map.collection, _map.keys[_map.current])
+		}
+
+		_map.keys[_map.current] = key
 	}
 
 	_map.collection[key] = value
 }
 
-func (_map *concurrentOrderedStringMap) Get(key string) (ISystemObject, bool) {
+func (_map *concurrentCircularStringMap) Get(key string) (ISystemObject, bool) {
 	_map.RLock()
 	defer _map.RUnlock()
 	value, exists := _map.collection[key]
 	return value, exists
 }
 
-func (_map *concurrentOrderedStringMap) Remove(key string) {
-	_map.Lock()
-	defer _map.Unlock()
-	delete(_map.collection, key)
-
-	index := -1
-	for i, item := range _map.keys {
-		if item == key {
-			index = i
-			break
-		}
-	}
-
-	if index >= 0 {
-		_map.keys = append(_map.keys[:index], _map.keys[index+1:]...)
-	}
+func (_map *concurrentCircularStringMap) Remove(key string) {
+	panic("not_implemented")
 }
 
-func (_map *concurrentOrderedStringMap) Contains(key string) bool {
+func (_map *concurrentCircularStringMap) Contains(key string) bool {
 	_, exists := _map.Get(key)
 	return exists
 }
 
-func (_map *concurrentOrderedStringMap) GetSize() int {
+func (_map *concurrentCircularStringMap) GetSize() int {
 	_map.RLock()
 	defer _map.RUnlock()
-	return len(_map.collection)
+	return _map.capacity
 }
 
-func (_map *concurrentOrderedStringMap) IndexOf(object ISystemObject) int {
+func (_map *concurrentCircularStringMap) IndexOf(object ISystemObject) int {
 	_map.RLock()
 	defer _map.RUnlock()
 
@@ -95,7 +90,7 @@ func (_map *concurrentOrderedStringMap) IndexOf(object ISystemObject) int {
 	return -1
 }
 
-func (_map *concurrentOrderedStringMap) IndexOfKey(key string) int {
+func (_map *concurrentCircularStringMap) IndexOfKey(key string) int {
 	_map.RLock()
 	defer _map.RUnlock()
 
@@ -108,28 +103,28 @@ func (_map *concurrentOrderedStringMap) IndexOfKey(key string) int {
 	return -1
 }
 
-func (_map *concurrentOrderedStringMap) GetKeyAt(index int) string {
+func (_map *concurrentCircularStringMap) GetKeyAt(index int) string {
 	_map.RLock()
 	defer _map.RUnlock()
 
 	return _map.keys[index]
 }
 
-func (_map *concurrentOrderedStringMap) GetValueAt(index int) ISystemObject {
+func (_map *concurrentCircularStringMap) GetValueAt(index int) ISystemObject {
 	_map.RLock()
 	defer _map.RUnlock()
 
 	return _map.collection[_map.keys[index]]
 }
 
-func (_map *concurrentOrderedStringMap) Clear() {
+func (_map *concurrentCircularStringMap) Clear() {
 	_map.Lock()
 	defer _map.Unlock()
-	_map.collection = make(map[string]ISystemObject)
-	_map.keys = make([]string, 0)
+	_map.keys = make([]string, _map.capacity)
+	_map.collection = make(map[string]ISystemObject, _map.capacity)
 }
 
-func (_map *concurrentOrderedStringMap) ForEachValue(iterator func(ISystemObject)) {
+func (_map *concurrentCircularStringMap) ForEachValue(iterator func(ISystemObject)) {
 	if iterator == nil {
 		return
 	}
@@ -141,7 +136,7 @@ func (_map *concurrentOrderedStringMap) ForEachValue(iterator func(ISystemObject
 	}
 }
 
-func (_map *concurrentOrderedStringMap) ForEachKey(iterator func(string)) {
+func (_map *concurrentCircularStringMap) ForEachKey(iterator func(string)) {
 	if iterator == nil {
 		return
 	}
@@ -153,7 +148,7 @@ func (_map *concurrentOrderedStringMap) ForEachKey(iterator func(string)) {
 	}
 }
 
-func (_map *concurrentOrderedStringMap) ForEach(iterator func(string, ISystemObject)) {
+func (_map *concurrentCircularStringMap) ForEach(iterator func(string, ISystemObject)) {
 	if iterator == nil {
 		return
 	}
@@ -165,7 +160,7 @@ func (_map *concurrentOrderedStringMap) ForEach(iterator func(string, ISystemObj
 	}
 }
 
-func (_map *concurrentOrderedStringMap) ForEachParallel(iterator func(string, ISystemObject)) {
+func (_map *concurrentCircularStringMap) ForEachParallel(iterator func(string, ISystemObject)) {
 	if iterator == nil {
 		return
 	}
@@ -186,7 +181,7 @@ func (_map *concurrentOrderedStringMap) ForEachParallel(iterator func(string, IS
 	waitGroup.Wait()
 }
 
-func (_map *concurrentOrderedStringMap) Filter(predicate func(ISystemObject) bool) []ISystemObject {
+func (_map *concurrentCircularStringMap) Filter(predicate func(ISystemObject) bool) []ISystemObject {
 	if predicate == nil {
 		return nil
 	}
@@ -205,7 +200,7 @@ func (_map *concurrentOrderedStringMap) Filter(predicate func(ISystemObject) boo
 	return result
 }
 
-func (_map *concurrentOrderedStringMap) Map(predicate func(ISystemObject) ISystemObject) []ISystemObject {
+func (_map *concurrentCircularStringMap) Map(predicate func(ISystemObject) ISystemObject) []ISystemObject {
 	if predicate == nil {
 		return nil
 	}
