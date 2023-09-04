@@ -3,6 +3,7 @@ package io
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"runtime"
 	"sync"
@@ -14,7 +15,19 @@ import (
 	. "github.com/xeronith/diamante/contracts/operation"
 	. "github.com/xeronith/diamante/contracts/serialization"
 	. "github.com/xeronith/diamante/contracts/server"
+
+	_ "embed"
 )
+
+var (
+	//go:embed quotes.json
+	quotesData []byte
+	quotes     = &[]*struct{ Author, Quote string }{}
+)
+
+func init() {
+	_ = json.Unmarshal(quotesData, quotes)
+}
 
 type httpWriter struct {
 	sync.RWMutex
@@ -120,6 +133,13 @@ func (writer *httpWriter) Write(result IOperationResult) {
 	writer.context.Response().Header().Add("X-Request-Timestamp", fmt.Sprintf("%d", result.Id()))
 	writer.context.Response().Header().Add("X-Response-Signature", result.Signature())
 	writer.context.Response().Header().Add("Server-Timing", fmt.Sprintf("id;desc=\"Opcode: 0x%X, Alloc: %d MiB, Sys: %d MiB, GC: %d, Miss: %d, Hit: %d\",pipeline;desc=\"Pipeline\";dur=%f,service;desc=\"Service\";dur=%f", result.Type(), alloc, sys, memStats.NumGC, miss, hit, pipelineDuration, serviceDuration))
+
+	if serviceDuration == 0 {
+		writer.context.Response().Header().Add("X-Turbo", "On")
+	}
+
+	quote := (*quotes)[rand.Intn(len(*quotes))]
+	writer.context.Response().Header().Add("X-Quote", fmt.Sprintf("%s: %s", quote.Author, quote.Quote))
 
 	signature := writer.context.Request().Header.Get("X-Request-Signature")
 	if signature != "" && signature == result.Signature() {
