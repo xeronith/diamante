@@ -24,6 +24,7 @@ type (
 		OutputContainer() Pointer
 		Execute(IContext, Pointer) (Pointer, error)
 		ExecutionTimeLimits() (Duration, Duration, Duration)
+		IsCacheable() bool
 	}
 
 	IOperationFactory interface {

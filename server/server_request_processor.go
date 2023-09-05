@@ -51,7 +51,9 @@ func (server *baseServer) OnOperationRequest(pipeline IPipeline, request IOperat
 		return pipeline.InternalServerError(err)
 	} else {
 		result := CreateOperationResult(pipeline.RequestId(), OK, context.ResultType(), payload, pipeline, duration)
-		server.cache.Put(result.Signature(), result)
+		if operation.IsCacheable() {
+			server.cache.Put(result.Signature(), result)
+		}
 
 		return result.UpdateStat(false, atomic.AddInt64(&server.cacheMiss, 1), server.cacheHit)
 	}

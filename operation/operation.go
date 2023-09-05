@@ -36,3 +36,7 @@ func (operation *Operation) ActiveRunner() uint {
 func (operation *Operation) SetActiveRunner(value uint) {
 	operation.activeRunner = value
 }
+
+func (operation *Operation) IsCacheable() bool {
+	return true
+}
