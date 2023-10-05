@@ -190,6 +190,31 @@ func (postgres *PostgreSQL) SetPassword(password string) {
 
 //------------------------------------------------------------------------------------------------------------
 
+type Mastodon struct {
+	Server       string `yaml:"server"`
+	ClientID     string `yaml:"client_id"`
+	ClientSecret string `yaml:"client_secret"`
+	Token        string `yaml:"token"`
+}
+
+func (mastodon *Mastodon) GetServer() string {
+	return mastodon.Server
+}
+
+func (mastodon *Mastodon) GetClientID() string {
+	return mastodon.ClientID
+}
+
+func (mastodon *Mastodon) GetClientSecret() string {
+	return mastodon.ClientSecret
+}
+
+func (mastodon *Mastodon) GetToken() string {
+	return mastodon.Token
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 type Influx struct {
 	Enabled  bool     `yaml:"enabled"`
 	Address  string   `yaml:"address"`
@@ -234,6 +259,7 @@ type Configuration struct {
 	Server         *Server     `yaml:"server"`
 	Influx         *Influx     `yaml:"influx"`
 	PostgreSQL     *PostgreSQL `yaml:"postgres"`
+	Mastodon       *Mastodon   `yaml:"mastodon"`
 }
 
 func (configuration *Configuration) IsDockerized() bool {
@@ -317,6 +343,14 @@ func (configuration *Configuration) GetPostgreSQLConfiguration() IPostgreSQLConf
 	}
 
 	return configuration.PostgreSQL
+}
+
+func (configuration *Configuration) GetMastodonConfiguration() IMastodonConfiguration {
+	if configuration.Mastodon == nil {
+		configuration.Mastodon = &Mastodon{}
+	}
+
+	return configuration.Mastodon
 }
 
 func (configuration *Configuration) GetPorts() (int, int, int) {
@@ -460,6 +494,7 @@ func NewTestConfiguration() IConfiguration {
 			Username: "postgres",
 			Password: "password",
 		},
+		Mastodon: &Mastodon{},
 	}
 }
 
@@ -487,5 +522,6 @@ func NewBenchmarkConfiguration() IConfiguration {
 			Username: "postgres",
 			Password: "password",
 		},
+		Mastodon: &Mastodon{},
 	}
 }

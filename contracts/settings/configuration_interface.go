@@ -14,6 +14,7 @@ type (
 		GetServerConfiguration() IServerConfiguration
 		GetInfluxConfiguration() IInfluxConfiguration
 		GetPostgreSQLConfiguration() IPostgreSQLConfiguration
+		GetMastodonConfiguration() IMastodonConfiguration
 		GetPorts() (int, int, int)
 	}
 
@@ -53,6 +54,13 @@ type (
 		SetUsername(string)
 		GetPassword() string
 		SetPassword(string)
+	}
+
+	IMastodonConfiguration interface {
+		GetServer() string
+		GetClientID() string
+		GetClientSecret() string
+		GetToken() string
 	}
 
 	IInfluxConfiguration interface {
