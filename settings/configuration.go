@@ -257,14 +257,14 @@ func (influx *Influx) GetReplicas() []string {
 
 type Configuration struct {
 	Dockerized           bool
-	Environment          string                 `yaml:"environment"`
-	TrafficRecord        bool                   `yaml:"traffic_record"`
-	RequestLog           bool                   `yaml:"request_log"`
-	AllowedOrigins       []string               `yaml:"allowed_origins"`
-	Server               *Server                `yaml:"server"`
-	Influx               *Influx                `yaml:"influx"`
-	PostgreSQL           *PostgreSQL            `yaml:"postgres"`
-	MastodonApplications []*MastodonApplication `yaml:"mastodon"`
+	Environment          string                `yaml:"environment"`
+	TrafficRecord        bool                  `yaml:"traffic_record"`
+	RequestLog           bool                  `yaml:"request_log"`
+	AllowedOrigins       []string              `yaml:"allowed_origins"`
+	Server               *Server               `yaml:"server"`
+	Influx               *Influx               `yaml:"influx"`
+	PostgreSQL           *PostgreSQL           `yaml:"postgres"`
+	MastodonApplications []MastodonApplication `yaml:"mastodon"`
 }
 
 func (configuration *Configuration) IsDockerized() bool {
@@ -352,12 +352,12 @@ func (configuration *Configuration) GetPostgreSQLConfiguration() IPostgreSQLConf
 
 func (configuration *Configuration) GetMastodonApplication(name string) IMastodonApplication {
 	if configuration.MastodonApplications == nil {
-		configuration.MastodonApplications = []*MastodonApplication{}
+		configuration.MastodonApplications = []MastodonApplication{}
 	}
 
 	for _, app := range configuration.MastodonApplications {
 		if strings.TrimSpace(app.Name) == strings.TrimSpace(name) {
-			return app
+			return &app
 		}
 	}
 
@@ -505,7 +505,7 @@ func NewTestConfiguration() IConfiguration {
 			Username: "postgres",
 			Password: "password",
 		},
-		MastodonApplications: []*MastodonApplication{},
+		MastodonApplications: []MastodonApplication{},
 	}
 }
 
@@ -533,6 +533,6 @@ func NewBenchmarkConfiguration() IConfiguration {
 			Username: "postgres",
 			Password: "password",
 		},
-		MastodonApplications: []*MastodonApplication{},
+		MastodonApplications: []MastodonApplication{},
 	}
 }
