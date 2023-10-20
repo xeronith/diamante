@@ -190,26 +190,31 @@ func (postgres *PostgreSQL) SetPassword(password string) {
 
 //------------------------------------------------------------------------------------------------------------
 
-type Mastodon struct {
+type MastodonApplication struct {
+	Name         string `yaml:"name"`
 	Server       string `yaml:"server"`
 	ClientID     string `yaml:"client_id"`
 	ClientSecret string `yaml:"client_secret"`
 	Token        string `yaml:"token"`
 }
 
-func (mastodon *Mastodon) GetServer() string {
+func (mastodon *MastodonApplication) GetName() string {
+	return mastodon.Name
+}
+
+func (mastodon *MastodonApplication) GetServer() string {
 	return mastodon.Server
 }
 
-func (mastodon *Mastodon) GetClientID() string {
+func (mastodon *MastodonApplication) GetClientID() string {
 	return mastodon.ClientID
 }
 
-func (mastodon *Mastodon) GetClientSecret() string {
+func (mastodon *MastodonApplication) GetClientSecret() string {
 	return mastodon.ClientSecret
 }
 
-func (mastodon *Mastodon) GetToken() string {
+func (mastodon *MastodonApplication) GetToken() string {
 	return mastodon.Token
 }
 
@@ -251,15 +256,15 @@ func (influx *Influx) GetReplicas() []string {
 //------------------------------------------------------------------------------------------------------------
 
 type Configuration struct {
-	Dockerized     bool
-	Environment    string      `yaml:"environment"`
-	TrafficRecord  bool        `yaml:"traffic_record"`
-	RequestLog     bool        `yaml:"request_log"`
-	AllowedOrigins []string    `yaml:"allowed_origins"`
-	Server         *Server     `yaml:"server"`
-	Influx         *Influx     `yaml:"influx"`
-	PostgreSQL     *PostgreSQL `yaml:"postgres"`
-	Mastodon       *Mastodon   `yaml:"mastodon"`
+	Dockerized           bool
+	Environment          string                 `yaml:"environment"`
+	TrafficRecord        bool                   `yaml:"traffic_record"`
+	RequestLog           bool                   `yaml:"request_log"`
+	AllowedOrigins       []string               `yaml:"allowed_origins"`
+	Server               *Server                `yaml:"server"`
+	Influx               *Influx                `yaml:"influx"`
+	PostgreSQL           *PostgreSQL            `yaml:"postgres"`
+	MastodonApplications []*MastodonApplication `yaml:"mastodon"`
 }
 
 func (configuration *Configuration) IsDockerized() bool {
@@ -345,12 +350,18 @@ func (configuration *Configuration) GetPostgreSQLConfiguration() IPostgreSQLConf
 	return configuration.PostgreSQL
 }
 
-func (configuration *Configuration) GetMastodonConfiguration() IMastodonConfiguration {
-	if configuration.Mastodon == nil {
-		configuration.Mastodon = &Mastodon{}
+func (configuration *Configuration) GetMastodonApplication(name string) IMastodonApplication {
+	if configuration.MastodonApplications == nil {
+		configuration.MastodonApplications = []*MastodonApplication{}
 	}
 
-	return configuration.Mastodon
+	for _, app := range configuration.MastodonApplications {
+		if strings.TrimSpace(app.Name) == strings.TrimSpace(name) {
+			return app
+		}
+	}
+
+	return nil
 }
 
 func (configuration *Configuration) GetPorts() (int, int, int) {
@@ -494,7 +505,7 @@ func NewTestConfiguration() IConfiguration {
 			Username: "postgres",
 			Password: "password",
 		},
-		Mastodon: &Mastodon{},
+		MastodonApplications: []*MastodonApplication{},
 	}
 }
 
@@ -522,6 +533,6 @@ func NewBenchmarkConfiguration() IConfiguration {
 			Username: "postgres",
 			Password: "password",
 		},
-		Mastodon: &Mastodon{},
+		MastodonApplications: []*MastodonApplication{},
 	}
 }
